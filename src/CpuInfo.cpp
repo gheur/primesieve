@@ -301,7 +301,6 @@ void CpuInfo::init()
   for (int i = 0; i <= 3; i++)
   {
     string filename = "/sys/devices/system/cpu/cpu0/cache/index" + to_string(i);
-    string threadSiblings = "/sys/devices/system/cpu/cpu0/topology/thread_siblings";
     string threadSiblingsList = "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list";
 
     string cacheLevel = filename + "/level";
@@ -309,7 +308,8 @@ void CpuInfo::init()
     string sharedCpuList = filename + "/shared_cpu_list";
     string cacheType = filename + "/type";
 
-    threadsPerCore_ = getValue(threadSiblings);
+    threadSiblingsList = getString(threadSiblingsList);
+    threadsPerCore_ = count(threadSiblingsList.begin(), threadSiblingsList.end(), ',') + 1;
     size_t level = getValue(cacheLevel);
     string type = getString(cacheType);
 
@@ -326,7 +326,6 @@ void CpuInfo::init()
     {
       l2CacheSize_ = getValue(cacheSize);
       sharedCpuList = getString(sharedCpuList);
-      threadSiblingsList = getString(threadSiblingsList);
 
       // https://lwn.net/Articles/254445/
       if (!sharedCpuList.empty() &&
