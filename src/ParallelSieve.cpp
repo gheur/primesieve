@@ -100,10 +100,9 @@ int ParallelSieve::idealSieveSize() const
       cpuInfo.hasL1Cache() &&
       cpuInfo.hasL2Cache() &&
       cpuInfo.privateL2Cache() &&
-      sieveSize * 1024u == cpuInfo.l2CacheSize())
+      cpuInfo.l2CacheSize() == sieveSize * 1024u)
   {
-    size_t l2Threads = inBetween(1, cpuInfo.l2Threads(), 4);
-    sieveSize /= l2Threads;
+    sieveSize /= inBetween(1, cpuInfo.l2Threads(), 4);
     sieveSize = inBetween(32, sieveSize, 4096);
     sieveSize = floorPow2(sieveSize);
 
