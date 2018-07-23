@@ -11,6 +11,8 @@
 #include <primesieve/config.hpp>
 #include <primesieve/ParallelSieve.hpp>
 #include <primesieve/PrimeSieve.hpp>
+#include <primesieve/CpuInfo.hpp>
+#include <primesieve/EratBig.hpp>
 #include <primesieve/pmath.hpp>
 
 #include <stdint.h>
@@ -85,6 +87,35 @@ int ParallelSieve::idealNumThreads() const
   return (int) threads;
 }
 
+/// If the CPU has Hyper-Threading we can increase
+/// the L2 cache efficiency by setting the sieveSize
+/// to the L2 cache size / threads per CPU core
+///
+int ParallelSieve::idealSieveSize() const
+{
+  int sieveSize = getSieveSize();
+  int sieveBytes = sieveSize * 1024;
+  int oldSize = sieveSize;
+
+  if (idealNumThreads() > 1 &&
+      cpuInfo.hasL1Cache() &&
+      cpuInfo.hasL2Cache() &&
+      cpuInfo.privateL2Cache() &&
+      sieveBytes == cpuInfo.l2CacheSize())
+  {
+    size_t l2Threads = inBetween(1, cpuInfo.l2Threads(), 4);
+    sieveSize /= cpuInfo.l2Threads();
+    sieveSize = inBetween(32, sieveSize, 4096);
+    sieveSize = floorPow2(sieveSize);
+    sieveBytes = sieveSize * 1024;
+
+    if (EratBig::fitsIntoCache(stop_, sieveBytes, cpuInfo.l1CacheSize()))
+      return sieveSize;
+  }
+
+  return oldSize;
+}
+
 /// Get a thread distance which ensures a good load
 /// balance when using multiple threads
 ///
@@ -135,6 +166,7 @@ void ParallelSieve::sieve()
   else
   {
     auto t1 = chrono::system_clock::now();
+    sieveSize_ = idealSieveSize();
     uint64_t threadDistance = getThreadDistance(threads);
     uint64_t iters = ((getDistance() - 1) / threadDistance) + 1;
     threads = inBetween(1, threads, iters);

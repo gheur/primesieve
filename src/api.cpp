@@ -182,9 +182,10 @@ int get_sieve_size()
       cpuInfo.privateL2Cache() &&
       l2CacheSize > l1CacheSize)
   {
-    l2CacheSize = inBetween(32, l2CacheSize, 4096);
-    l2CacheSize = floorPow2(l2CacheSize);
-    return (int) l2CacheSize;
+    size_t size = l2CacheSize;
+    size = inBetween(32, size, 4096);
+    size = floorPow2(size);
+    return (int) size;
   }
   else
   {
@@ -195,9 +196,10 @@ int get_sieve_size()
     // cache is shared between all CPU cores we
     // set the sieve size to the CPU's L1 cache size
 
-    l1CacheSize = inBetween(8, l1CacheSize, 4096);
-    l1CacheSize = floorPow2(l1CacheSize);
-    return (int) l1CacheSize;
+    size_t size = l1CacheSize;
+    size = inBetween(8, size, 4096);
+    size = floorPow2(size);
+    return (int) size;
   }
 }
 

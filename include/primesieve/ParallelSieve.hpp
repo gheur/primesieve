@@ -40,6 +40,7 @@ public:
   static int getMaxThreads();
   int getNumThreads() const;
   int idealNumThreads() const;
+  int idealSieveSize() const;
   void setNumThreads(int numThreads);
   using PrimeSieve::sieve;
   virtual void sieve();

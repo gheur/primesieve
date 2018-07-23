@@ -9,6 +9,7 @@
 ///
 
 #include <primesieve/CpuInfo.hpp>
+#include <primesieve/pmath.hpp>
 
 #include <cstddef>
 #include <exception>
@@ -94,11 +95,14 @@ namespace primesieve {
 CpuInfo::CpuInfo()
   : l1CacheSize_(0),
     l2CacheSize_(0),
-    privateL2Cache_(false)
+    l2Threads_(1),
+    threadsPerCore_(1)
 {
   try
   {
     init();
+    l2Threads_ = inBetween(1, l2Threads_, 128);
+    threadsPerCore_ = inBetween(1, threadsPerCore_, 128);
   }
   catch (exception& e)
   {
@@ -116,9 +120,14 @@ size_t CpuInfo::l2CacheSize() const
   return l2CacheSize_;
 }
 
+size_t CpuInfo::l2Threads() const
+{
+  return l2Threads_;
+}
+
 bool CpuInfo::privateL2Cache() const
 {
-  return privateL2Cache_;
+  return l2Threads_ <= threadsPerCore_;
 }
 
 string CpuInfo::getError() const
@@ -157,27 +166,20 @@ void CpuInfo::init()
 
     if (cacheconfig.size() > 2)
     {
+      size_t logicalcpu = 1;
+      size = sizeof(size);
+      sysctlbyname("hw.logicalcpu", &logicalcpu, &size, NULL, 0);
+      logicalcpu = max<size_t>(1, logicalcpu);
+
+      size_t physicalcpu = 1;
+      size = sizeof(size);
+      sysctlbyname("hw.physicalcpu", &physicalcpu, &size, NULL, 0);
+      physicalcpu = max<size_t>(1, physicalcpu);
+      threadsPerCore_ = logicalcpu / physicalcpu;
+
       // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
       sysctlbyname("hw.cacheconfig" , &cacheconfig[0], &size, NULL, 0);
-      size_t l2Sharing = cacheconfig[2];
-
-      if (l2Sharing <= 1)
-        privateL2Cache_ = true;
-      else
-      {
-        size_t logicalcpu = 1;
-        size = sizeof(size);
-        sysctlbyname("hw.logicalcpu", &logicalcpu, &size, NULL, 0);
-        logicalcpu = max<size_t>(1, logicalcpu);
-
-        size_t physicalcpu = 1;
-        size = sizeof(size);
-        sysctlbyname("hw.physicalcpu", &physicalcpu, &size, NULL, 0);
-        physicalcpu = max<size_t>(1, physicalcpu);
-
-        if (l2Sharing <= logicalcpu / physicalcpu)
-          privateL2Cache_ = true;
-      }
+      l2Threads_ = cacheconfig[2];
     }
   }
 }
@@ -199,7 +201,6 @@ void CpuInfo::init()
   if (!bytes)
     return;
 
-  size_t threadsPerCore = 0;
   size_t size = bytes / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
   vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> info(size);
 
@@ -215,7 +216,7 @@ void CpuInfo::init()
       // ProcessorMask contains one bit set for
       // each logical CPU core related to the
       // current physical CPU core
-      for (threadsPerCore = 0; mask > 0; threadsPerCore++)
+      for (threadsPerCore_ = 0; mask > 0; threadsPerCore_++)
         mask &= mask - 1;
     }
 
@@ -232,7 +233,7 @@ void CpuInfo::init()
       // the L2 cache is private
       if (info[i].Cache.Level == 3 &&
           info[i].Cache.Size > 0)
-        privateL2Cache_ = true;
+        l2Threads_ = threadsPerCore_;
     }
   }
 
@@ -276,15 +277,12 @@ void CpuInfo::init()
       // only have 1 or 2 bits set for each CPU cache (L1, L2 and
       // L3) even if more logical CPU cores share the cache
       auto mask = cpu->Cache.GroupMask.Mask;
-      size_t l2Sharing = 0;
+      l2Threads_ = 0;
 
       // Cache.GroupMask.Mask contains one bit set for
       // each logical CPU core sharing the cache
-      for (; mask > 0; l2Sharing++)
+      for (; mask > 0; l2Threads_++)
         mask &= mask - 1;
-
-      // the L2 cache is private if it is tied to a physical CPU core
-      privateL2Cache_ = (l2Sharing <= threadsPerCore);
 
       break;
     }
@@ -303,6 +301,7 @@ void CpuInfo::init()
   for (int i = 0; i <= 3; i++)
   {
     string filename = "/sys/devices/system/cpu/cpu0/cache/index" + to_string(i);
+    string threadSiblings = "/sys/devices/system/cpu/cpu0/topology/thread_siblings";
     string threadSiblingsList = "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list";
 
     string cacheLevel = filename + "/level";
@@ -310,6 +309,7 @@ void CpuInfo::init()
     string sharedCpuList = filename + "/shared_cpu_list";
     string cacheType = filename + "/type";
 
+    threadsPerCore_ = getValue(threadSiblings);
     size_t level = getValue(cacheLevel);
     string type = getString(cacheType);
 
@@ -331,7 +331,7 @@ void CpuInfo::init()
       // https://lwn.net/Articles/254445/
       if (!sharedCpuList.empty() &&
           sharedCpuList == threadSiblingsList)
-        privateL2Cache_ = true;
+        l2Threads_ = threadsPerCore_;
     }
   }
 }

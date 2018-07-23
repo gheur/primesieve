@@ -33,7 +33,9 @@ namespace primesieve {
 /// @sieveSize:  Sieve size in bytes
 /// @maxPrime:   Sieving primes <= maxPrime
 ///
-void EratBig::init(uint64_t stop, uint64_t sieveSize, uint64_t maxPrime)
+void EratBig::init(uint64_t stop,
+                   uint64_t sieveSize,
+                   uint64_t maxPrime)
 {
   // '>> log2SieveSize' requires power of 2 sieveSize
   if (!isPow2(sieveSize))
@@ -47,6 +49,19 @@ void EratBig::init(uint64_t stop, uint64_t sieveSize, uint64_t maxPrime)
 
   Wheel::init(stop, sieveSize);
   init(sieveSize);
+}
+
+bool EratBig::fitsIntoCache(uint64_t stop,
+                            uint64_t sieveSize,
+                            uint64_t l1CacheSize)
+{
+  uint64_t maxSievingPrime  = isqrt(stop) / 30;
+  uint64_t maxNextMultiple  = maxSievingPrime * getMaxFactor() + getMaxFactor();
+  uint64_t maxMultipleIndex = sieveSize - 1 + maxNextMultiple;
+  uint64_t maxSegmentCount  = maxMultipleIndex / sieveSize;
+  uint64_t listsBytes = maxSegmentCount * sizeof(Bucket*);
+
+  return listsBytes <= l1CacheSize;
 }
 
 void EratBig::init(uint64_t sieveSize)
@@ -67,7 +82,9 @@ void EratBig::init(uint64_t sieveSize)
 }
 
 /// Add a new sieving prime to EratBig
-void EratBig::storeSievingPrime(uint64_t prime, uint64_t multipleIndex, uint64_t wheelIndex)
+void EratBig::storeSievingPrime(uint64_t prime,
+                                uint64_t multipleIndex,
+                                uint64_t wheelIndex)
 {
   assert(prime <= maxPrime_);
   uint64_t sievingPrime = prime / 30;
@@ -131,7 +148,9 @@ void EratBig::crossOff(byte_t* sieve)
 /// multiples per segment. Cross-off the next multiple of
 /// each sieving prime in the current bucket
 ///
-void EratBig::crossOff(byte_t* sieve, SievingPrime* primes, SievingPrime* end)
+void EratBig::crossOff(byte_t* sieve,
+                       SievingPrime* primes,
+                       SievingPrime* end)
 {
   Bucket** lists = &lists_[0];
   uint64_t moduloSieveSize = moduloSieveSize_;

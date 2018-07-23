@@ -88,6 +88,8 @@ protected:
   counts_t counts_;
   /// Time elapsed of sieve()
   double seconds_;
+  /// Sieve size in kilobytes
+  int sieveSize_;
   uint64_t getDistance() const;
   void reset();
 private:
@@ -97,8 +99,6 @@ private:
   uint64_t toUpdate_;
   /// Status of sieve() in percent
   double percent_;
-  /// Sieve size in kilobytes
-  int sieveSize_;
   /// Setter methods set flags e.g. COUNT_PRIMES
   int flags_;
   /// parent ParallelSieve object
