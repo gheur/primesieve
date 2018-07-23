@@ -94,22 +94,20 @@ int ParallelSieve::idealNumThreads() const
 int ParallelSieve::idealSieveSize() const
 {
   int sieveSize = getSieveSize();
-  int sieveBytes = sieveSize * 1024;
   int oldSize = sieveSize;
 
   if (idealNumThreads() > 1 &&
       cpuInfo.hasL1Cache() &&
       cpuInfo.hasL2Cache() &&
       cpuInfo.privateL2Cache() &&
-      sieveBytes == cpuInfo.l2CacheSize())
+      sieveSize * 1024u == cpuInfo.l2CacheSize())
   {
     size_t l2Threads = inBetween(1, cpuInfo.l2Threads(), 4);
-    sieveSize /= cpuInfo.l2Threads();
+    sieveSize /= l2Threads;
     sieveSize = inBetween(32, sieveSize, 4096);
     sieveSize = floorPow2(sieveSize);
-    sieveBytes = sieveSize * 1024;
 
-    if (EratBig::fitsIntoCache(stop_, sieveBytes, cpuInfo.l1CacheSize()))
+    if (EratBig::fitsIntoCache(stop_, sieveSize * 1024))
       return sieveSize;
   }
 

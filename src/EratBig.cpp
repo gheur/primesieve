@@ -13,6 +13,7 @@
 
 #include <primesieve/Bucket.hpp>
 #include <primesieve/config.hpp>
+#include <primesieve/CpuInfo.hpp>
 #include <primesieve/EratBig.hpp>
 #include <primesieve/pmath.hpp>
 #include <primesieve/primesieve_error.hpp>
@@ -52,8 +53,7 @@ void EratBig::init(uint64_t stop,
 }
 
 bool EratBig::fitsIntoCache(uint64_t stop,
-                            uint64_t sieveSize,
-                            uint64_t l1CacheSize)
+                            uint64_t sieveSize)
 {
   uint64_t maxSievingPrime  = isqrt(stop) / 30;
   uint64_t maxNextMultiple  = maxSievingPrime * getMaxFactor() + getMaxFactor();
@@ -61,7 +61,7 @@ bool EratBig::fitsIntoCache(uint64_t stop,
   uint64_t maxSegmentCount  = maxMultipleIndex / sieveSize;
   uint64_t listsBytes = maxSegmentCount * sizeof(Bucket*);
 
-  return listsBytes <= l1CacheSize;
+  return listsBytes <= cpuInfo.l1CacheSize();
 }
 
 void EratBig::init(uint64_t sieveSize)

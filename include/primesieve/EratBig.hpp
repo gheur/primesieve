@@ -30,7 +30,7 @@ public:
   void init(uint64_t, uint64_t, uint64_t);
   void crossOff(byte_t*);
   bool enabled() const { return enabled_; }
-  static bool fitsIntoCache(uint64_t stop, uint64_t sieveSize, uint64_t l1CacheSize);
+  static bool fitsIntoCache(uint64_t stop, uint64_t sieveSize);
 private:
   uint64_t maxPrime_;
   uint64_t log2SieveSize_;
