@@ -33,7 +33,6 @@ private:
   std::size_t l2CacheSize_;
   std::size_t l2Threads_;
   std::size_t threadsPerCore_;
-  bool privateL2Cache_;
   std::string error_;
   void init();
 };
