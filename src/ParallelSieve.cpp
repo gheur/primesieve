@@ -93,7 +93,7 @@ int ParallelSieve::idealNumThreads() const
 ///
 int ParallelSieve::idealSieveSize() const
 {
-  int sieveSize = getSieveSize();
+  int sieveSize = get_sieve_size();
   int oldSize = sieveSize;
 
   if (idealNumThreads() > 1 &&
