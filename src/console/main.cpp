@@ -66,7 +66,7 @@ void sieve(CmdOptions& opt)
 
   if (!opt.quiet)
   {
-    cout << "Sieve size = " << ps.idealSieveSize() << " kilobytes" << endl;
+    cout << "Sieve size = " << ps.getSieveSize() << " kilobytes" << endl;
     cout << "Threads = " << ps.idealNumThreads() << endl;
   }
 

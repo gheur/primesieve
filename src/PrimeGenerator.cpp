@@ -87,7 +87,7 @@ void PrimeGenerator::init()
 {
   // sieving is used > max(SmallPrime)
   uint64_t sieving = smallPrimes.back() + 1;
-  uint64_t sieveSize = get_sieve_size();
+  uint64_t sieveSize = get_sieve_size(stop_);
   start_ = max(start_, sieving);
 
   Erat::init(start_, stop_, sieveSize, preSieve_);

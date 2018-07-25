@@ -15,6 +15,7 @@
 #include <primesieve/PrimeSieve.hpp>
 #include <primesieve/ParallelSieve.hpp>
 #include <primesieve/malloc_vector.hpp>
+#include <primesieve/types.hpp>
 
 #include <stdint.h>
 #include <cstdlib>
@@ -129,7 +130,9 @@ uint64_t primesieve_nth_prime(int64_t n, uint64_t start)
   try
   {
     ParallelSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    auto stop = start + n;
+    auto sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.setNumThreads(get_num_threads());
     return ps.nthPrime(n, start);
   }
@@ -145,7 +148,8 @@ uint64_t primesieve_count_primes(uint64_t start, uint64_t stop)
   try
   {
     ParallelSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.setNumThreads(get_num_threads());
     ps.sieve(start, stop, COUNT_PRIMES);
     return ps.getCount(0);
@@ -162,7 +166,8 @@ uint64_t primesieve_count_twins(uint64_t start, uint64_t stop)
   try
   {
     ParallelSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.setNumThreads(get_num_threads());
     ps.sieve(start, stop, COUNT_TWINS);
     return ps.getCount(1);
@@ -179,7 +184,8 @@ uint64_t primesieve_count_triplets(uint64_t start, uint64_t stop)
   try
   {
     ParallelSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.setNumThreads(get_num_threads());
     ps.sieve(start, stop, COUNT_TRIPLETS);
     return ps.getCount(2);
@@ -196,7 +202,8 @@ uint64_t primesieve_count_quadruplets(uint64_t start, uint64_t stop)
   try
   {
     ParallelSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.setNumThreads(get_num_threads());
     ps.sieve(start, stop, COUNT_QUADRUPLETS);
     return ps.getCount(3);
@@ -213,7 +220,8 @@ uint64_t primesieve_count_quintuplets(uint64_t start, uint64_t stop)
   try
   {
     ParallelSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.setNumThreads(get_num_threads());
     ps.sieve(start, stop, COUNT_QUINTUPLETS);
     return ps.getCount(4);
@@ -230,7 +238,8 @@ uint64_t primesieve_count_sextuplets(uint64_t start, uint64_t stop)
   try
   {
     ParallelSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.setNumThreads(get_num_threads());
     ps.sieve(start, stop, COUNT_SEXTUPLETS);
     return ps.getCount(5);
@@ -247,7 +256,8 @@ void primesieve_print_primes(uint64_t start, uint64_t stop)
   try
   {
     PrimeSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.sieve(start, stop, PRINT_PRIMES);
   }
   catch (exception&)
@@ -261,7 +271,8 @@ void primesieve_print_twins(uint64_t start, uint64_t stop)
   try
   {
     PrimeSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.sieve(start, stop, PRINT_TWINS);
   }
   catch (exception&)
@@ -275,7 +286,8 @@ void primesieve_print_triplets(uint64_t start, uint64_t stop)
   try
   {
     PrimeSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.sieve(start, stop, PRINT_TRIPLETS);
   }
   catch (exception&)
@@ -289,7 +301,8 @@ void primesieve_print_quadruplets(uint64_t start, uint64_t stop)
   try
   {
     PrimeSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.sieve(start, stop, PRINT_QUADRUPLETS);
   }
   catch (exception&)
@@ -303,7 +316,8 @@ void primesieve_print_quintuplets(uint64_t start, uint64_t stop)
   try
   {
     PrimeSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.sieve(start, stop, PRINT_QUINTUPLETS);
   }
   catch (exception&)
@@ -317,7 +331,8 @@ void primesieve_print_sextuplets(uint64_t start, uint64_t stop)
   try
   {
     PrimeSieve ps;
-    ps.setSieveSize(get_sieve_size());
+    int sieveSize = get_sieve_size(stop);
+    ps.setSieveSize(sieveSize);
     ps.sieve(start, stop, PRINT_SEXTUPLETS);
   }
   catch (exception&)

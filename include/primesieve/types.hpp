@@ -20,6 +20,7 @@ using byte_t = uint8_t;
 using uint_t = unsigned int;
 
 int get_sieve_size();
+int get_sieve_size(uint64_t stop);
 
 uint64_t get_max_stop();
 
