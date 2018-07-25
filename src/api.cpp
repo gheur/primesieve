@@ -205,7 +205,7 @@ int get_sieve_size(uint64_t stop)
     size = inBetween(32, size, 4096);
     size = floorPow2(size);
 
-    if (EratBig::fitsIntoCache(stop, size * 1024))
+    if (EratBig::fitsIntoCache(stop, size))
       return (int) size;
 
     // use larger sieve size to ensure

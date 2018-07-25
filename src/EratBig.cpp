@@ -52,18 +52,6 @@ void EratBig::init(uint64_t stop,
   init(sieveSize);
 }
 
-bool EratBig::fitsIntoCache(uint64_t stop,
-                            uint64_t sieveSize)
-{
-  uint64_t maxSievingPrime  = isqrt(stop) / 30;
-  uint64_t maxNextMultiple  = maxSievingPrime * getMaxFactor() + getMaxFactor();
-  uint64_t maxMultipleIndex = sieveSize - 1 + maxNextMultiple;
-  uint64_t maxSegmentCount  = maxMultipleIndex / sieveSize;
-  uint64_t listsBytes = maxSegmentCount * sizeof(Bucket*);
-
-  return listsBytes <= cpuInfo.l1CacheSize();
-}
-
 void EratBig::init(uint64_t sieveSize)
 {
   uint64_t maxSievingPrime  = maxPrime_ / 30;
@@ -79,6 +67,25 @@ void EratBig::init(uint64_t sieveSize)
   lists_.resize(size, nullptr);
   for (uint64_t i = 0; i < size; i++)
     pushBucket(i);
+}
+
+bool EratBig::fitsIntoCache(uint64_t stop,
+                            uint64_t sieveSize)
+{
+  // convert kilobytes to bytes
+  sieveSize <<= 10;
+
+  uint64_t maxSievingPrime  = isqrt(stop) / 30;
+  uint64_t maxNextMultiple  = maxSievingPrime * getMaxFactor() + getMaxFactor();
+  uint64_t maxMultipleIndex = sieveSize - 1 + maxNextMultiple;
+  uint64_t maxSegmentCount  = maxMultipleIndex / sieveSize;
+  uint64_t listsBytes = maxSegmentCount * sizeof(Bucket*);
+  uint64_t l1CacheSize = 32 << 10;
+
+  if (cpuInfo.hasL1Cache())
+    l1CacheSize = cpuInfo.l1CacheSize();
+
+  return listsBytes <= l1CacheSize;
 }
 
 /// Add a new sieving prime to EratBig
