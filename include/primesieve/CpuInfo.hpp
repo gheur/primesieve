@@ -1,6 +1,5 @@
 ///
 /// @file  CpuInfo.hpp
-/// @brief Get the CPUs' cache sizes in bytes
 ///
 /// Copyright (C) 2018 Kim Walisch, <kim.walisch@gmail.com>
 ///
@@ -22,20 +21,23 @@ public:
   CpuInfo();
   bool hasL1Cache() const;
   bool hasL2Cache() const;
+  bool hasL2Sharing() const;
+  bool hasThreadsPerCore() const;
   bool hasHyperThreading() const;
-  bool privateL2Cache() const;
+  bool hasPrivateL2Cache() const;
   std::string getError() const;
   std::size_t l1CacheSize() const;
   std::size_t l2CacheSize() const;
-  std::size_t l2Threads() const;
+  std::size_t l2Sharing() const;
+  std::size_t threadsPerCore() const;
 
 private:
+  void init();
   std::size_t l1CacheSize_;
   std::size_t l2CacheSize_;
-  std::size_t l2Threads_;
+  std::size_t l2Sharing_;
   std::size_t threadsPerCore_;
   std::string error_;
-  void init();
 };
 
 // Singleton

@@ -1,6 +1,7 @@
 ///
 /// @file   CpuInfo.cpp
-/// @brief  Get the CPUs' cache sizes in bytes
+/// @brief  Get detailed information about the CPU's caches
+///         on Windows, macOS and Linux.
 ///
 /// Copyright (C) 2018 Kim Walisch, <kim.walisch@gmail.com>
 ///
@@ -45,6 +46,18 @@ using namespace std;
 
 namespace {
 
+vector<string> split(const string& s, char delimiter)
+{
+   vector<string> tokens;
+   string token;
+   istringstream tokenStream(s);
+
+   while (getline(tokenStream, token, delimiter))
+      tokens.push_back(token);
+
+   return tokens;
+}
+
 string getString(const string& filename)
 {
   ifstream file(filename);
@@ -85,18 +98,6 @@ size_t getValue(const string& filename)
   return val;
 }
 
-vector<string> split(const string& s, char delimiter)
-{
-   vector<string> tokens;
-   string token;
-   istringstream tokenStream(s);
-
-   while (getline(tokenStream, token, delimiter))
-      tokens.push_back(token);
-
-   return tokens;
-}
-
 } // namespace
 
 #endif
@@ -108,7 +109,7 @@ namespace primesieve {
 CpuInfo::CpuInfo()
   : l1CacheSize_(0),
     l2CacheSize_(0),
-    l2Threads_(0),
+    l2Sharing_(0),
     threadsPerCore_(0)
 {
   try
@@ -131,9 +132,14 @@ size_t CpuInfo::l2CacheSize() const
   return l2CacheSize_;
 }
 
-size_t CpuInfo::l2Threads() const
+size_t CpuInfo::l2Sharing() const
 {
-  return l2Threads_;
+  return l2Sharing_;
+}
+
+size_t CpuInfo::threadsPerCore() const
+{
+  return threadsPerCore_;
 }
 
 string CpuInfo::getError() const
@@ -153,18 +159,31 @@ bool CpuInfo::hasL2Cache() const
          l2CacheSize_ <= (1 << 30);
 }
 
-bool CpuInfo::privateL2Cache() const
+bool CpuInfo::hasL2Sharing() const
 {
-  return l2Threads_ >= 1 &&
-         l2Threads_ <= (1 << 10) &&
-         l2Threads_ <= threadsPerCore_;
+  return l2Sharing_ >= 1 &&
+         l2Sharing_ <= (1 << 10);
+}
+
+bool CpuInfo::hasThreadsPerCore() const
+{
+  return threadsPerCore_ >= 1 &&
+         threadsPerCore_ <= (1 << 10);
+}
+
+bool CpuInfo::hasPrivateL2Cache() const
+{
+  return hasL2Sharing() &&
+         hasThreadsPerCore() &&
+         l2Sharing_ <= threadsPerCore_;
 }
 
 bool CpuInfo::hasHyperThreading() const
 {
-  return l2Threads_ >= 2 &&
-         l2Threads_ <= (1 << 10) &&
-         l2Threads_ <= threadsPerCore_;
+  return hasL2Sharing() &&
+         hasThreadsPerCore() &&
+         l2Sharing_ >= 2 &&
+         l2Sharing_ <= threadsPerCore_;
 }
 
 #if defined(APPLE_SYSCTL)
@@ -188,7 +207,7 @@ void CpuInfo::init()
     {
       // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
       sysctlbyname("hw.cacheconfig" , &cacheconfig[0], &size, NULL, 0);
-      l2Threads_ = cacheconfig[2];
+      l2Sharing_ = cacheconfig[2];
 
       size_t physicalcpu = 1;
       size = sizeof(size);
@@ -252,7 +271,7 @@ void CpuInfo::init()
       // the L2 cache is private
       if (info[i].Cache.Level == 3 &&
           info[i].Cache.Size > 0)
-        l2Threads_ = threadsPerCore_;
+        l2Sharing_ = threadsPerCore_;
     }
   }
 
@@ -296,11 +315,11 @@ void CpuInfo::init()
       // only have 1 or 2 bits set for each CPU cache (L1, L2 and
       // L3) even if more logical CPU cores share the cache
       auto mask = cpu->Cache.GroupMask.Mask;
-      l2Threads_ = 0;
+      l2Sharing_ = 0;
 
       // Cache.GroupMask.Mask contains one bit set for
       // each logical CPU core sharing the cache
-      for (; mask > 0; l2Threads_++)
+      for (; mask > 0; l2Sharing_++)
         mask &= mask - 1;
 
       break;
@@ -366,7 +385,7 @@ void CpuInfo::init()
       // https://lwn.net/Articles/254445/
       if (!sharedCpuList.empty() &&
           sharedCpuList == threadSiblingsList)
-        l2Threads_ = threadsPerCore_;
+        l2Sharing_ = threadsPerCore_;
     }
   }
 }
