@@ -22,6 +22,7 @@ public:
   CpuInfo();
   bool hasL1Cache() const;
   bool hasL2Cache() const;
+  bool hasHyperThreading() const;
   bool privateL2Cache() const;
   std::string getError() const;
   std::size_t l1CacheSize() const;

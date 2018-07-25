@@ -108,14 +108,12 @@ namespace primesieve {
 CpuInfo::CpuInfo()
   : l1CacheSize_(0),
     l2CacheSize_(0),
-    l2Threads_(1),
-    threadsPerCore_(1)
+    l2Threads_(0),
+    threadsPerCore_(0)
 {
   try
   {
     init();
-    l2Threads_ = inBetween(1, l2Threads_, 128);
-    threadsPerCore_ = inBetween(1, threadsPerCore_, 128);
   }
   catch (exception& e)
   {
@@ -160,6 +158,13 @@ bool CpuInfo::hasL2Cache() const
          l2CacheSize_ <= (1 << 30);
 }
 
+bool CpuInfo::hasHyperThreading() const
+{
+  return l2Threads_ >= 1 &&
+         l2Threads_ <= (1 << 10) &&
+         l2Threads_ <= threadsPerCore_;
+}
+
 #if defined(APPLE_SYSCTL)
 
 void CpuInfo::init()
@@ -179,20 +184,19 @@ void CpuInfo::init()
 
     if (cacheconfig.size() > 2)
     {
-      size_t logicalcpu = 1;
-      size = sizeof(size);
-      sysctlbyname("hw.logicalcpu", &logicalcpu, &size, NULL, 0);
-      logicalcpu = max<size_t>(1, logicalcpu);
+      // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
+      sysctlbyname("hw.cacheconfig" , &cacheconfig[0], &size, NULL, 0);
+      l2Threads_ = cacheconfig[2];
 
       size_t physicalcpu = 1;
       size = sizeof(size);
       sysctlbyname("hw.physicalcpu", &physicalcpu, &size, NULL, 0);
       physicalcpu = max<size_t>(1, physicalcpu);
-      threadsPerCore_ = logicalcpu / physicalcpu;
 
-      // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
-      sysctlbyname("hw.cacheconfig" , &cacheconfig[0], &size, NULL, 0);
-      l2Threads_ = cacheconfig[2];
+      size_t logicalcpu = 1;
+      size = sizeof(size);
+      sysctlbyname("hw.logicalcpu", &logicalcpu, &size, NULL, 0);
+      threadsPerCore_ = logicalcpu / physicalcpu;
     }
   }
 }
