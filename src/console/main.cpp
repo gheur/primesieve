@@ -9,6 +9,7 @@
 ///
 
 #include <primesieve/ParallelSieve.hpp>
+#include <primesieve/types.hpp>
 #include "cmdoptions.hpp"
 
 #include <stdint.h>
@@ -61,8 +62,13 @@ void sieve(CmdOptions& opt)
   if (numbers.size() < 2)
     numbers.push_front(0);
 
-  ps.setStart(numbers[0]);
-  ps.setStop(numbers[1]);
+  uint64_t start = numbers[0];
+  uint64_t stop = numbers[1];
+  int sieveSize = get_sieve_size(stop);
+
+  ps.setStart(start);
+  ps.setStop(stop);
+  ps.setSieveSize(sieveSize);
 
   if (!opt.quiet)
   {
@@ -93,9 +99,13 @@ void nthPrime(CmdOptions& opt)
 
   int64_t n = numbers[0];
   uint64_t start = numbers[1];
+  uint64_t stop = start + abs(n * 20);
   uint64_t nthPrime = 0;
+  int sieveSize = get_sieve_size(stop);
+
   ps.setStart(start);
-  ps.setStop(start + abs(n * 20));
+  ps.setStop(stop);
+  ps.setSieveSize(sieveSize);
 
   if (!opt.quiet)
   {

@@ -13,7 +13,6 @@
 #include <primesieve/PrimeSieve.hpp>
 #include <primesieve/pmath.hpp>
 #include <primesieve/PrintPrimes.hpp>
-#include <primesieve/types.hpp>
 
 #include <stdint.h>
 #include <algorithm>
@@ -53,10 +52,10 @@ namespace primesieve {
 PrimeSieve::PrimeSieve() :
   start_(0),
   stop_(0),
+  sieveSize_(32),
   flags_(COUNT_PRIMES),
   parent_(nullptr)
 {
-  setSieveSize(get_sieve_size());
   reset();
 }
 
