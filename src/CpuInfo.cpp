@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <exception>
 #include <string>
+#include <vector>
 
 #if defined(__APPLE__)
   #if !defined(__has_include)
@@ -82,6 +83,18 @@ size_t getValue(const string& filename)
   }
 
   return val;
+}
+
+vector<string> split(const string& s, char delimiter)
+{
+   vector<string> tokens;
+   string token;
+   istringstream tokenStream(s);
+
+   while (getline(tokenStream, token, delimiter))
+      tokens.push_back(token);
+
+   return tokens;
 }
 
 } // namespace
@@ -301,7 +314,6 @@ void CpuInfo::init()
   for (int i = 0; i <= 3; i++)
   {
     string filename = "/sys/devices/system/cpu/cpu0/cache/index" + to_string(i);
-    string threadSiblings = "/sys/devices/system/cpu/cpu0/topology/thread_siblings";
     string threadSiblingsList = "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list";
 
     string cacheLevel = filename + "/level";
@@ -309,9 +321,27 @@ void CpuInfo::init()
     string sharedCpuList = filename + "/shared_cpu_list";
     string cacheType = filename + "/type";
 
-    threadsPerCore_ = getValue(threadSiblings);
     size_t level = getValue(cacheLevel);
     string type = getString(cacheType);
+    threadSiblingsList = getString(threadSiblingsList);
+    threadsPerCore_ = 0;
+
+    // Parse the thread_siblings_list
+    // content can be either: 
+    // 1) threadId1, threadId2, ...
+    // 2) threadId1-threadId2, ...
+    for (auto& str : split(threadSiblingsList, ','))
+    {
+      if (str.find('-') == string::npos)
+        threadsPerCore_++;
+      else
+      {
+        auto values = split(str, '-');
+        auto threadId0 = stoi(values.at(0));
+        auto threadId1 = stoi(values.at(1));
+        threadsPerCore_ += threadId1 - threadId0 + 1;
+      }
+    }
 
     if (level == 1 &&
         (type == "Data" ||
@@ -326,7 +356,6 @@ void CpuInfo::init()
     {
       l2CacheSize_ = getValue(cacheSize);
       sharedCpuList = getString(sharedCpuList);
-      threadSiblingsList = getString(threadSiblingsList);
 
       // https://lwn.net/Articles/254445/
       if (!sharedCpuList.empty() &&
