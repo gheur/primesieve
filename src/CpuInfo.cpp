@@ -136,11 +136,6 @@ size_t CpuInfo::l2Threads() const
   return l2Threads_;
 }
 
-bool CpuInfo::privateL2Cache() const
-{
-  return l2Threads_ <= threadsPerCore_;
-}
-
 string CpuInfo::getError() const
 {
   return error_;
@@ -158,9 +153,16 @@ bool CpuInfo::hasL2Cache() const
          l2CacheSize_ <= (1 << 30);
 }
 
-bool CpuInfo::hasHyperThreading() const
+bool CpuInfo::privateL2Cache() const
 {
   return l2Threads_ >= 1 &&
+         l2Threads_ <= (1 << 10) &&
+         l2Threads_ <= threadsPerCore_;
+}
+
+bool CpuInfo::hasHyperThreading() const
+{
+  return l2Threads_ >= 2 &&
          l2Threads_ <= (1 << 10) &&
          l2Threads_ <= threadsPerCore_;
 }
