@@ -174,7 +174,9 @@ CpuInfo::CpuInfo() :
   cpuThreads_(0),
   l1CacheSize_(0),
   l2CacheSize_(0),
+  l3CacheSize_(0),
   l2Sharing_(0),
+  l3Sharing_(0),
   threadsPerCore_(0)
 {
   try
@@ -207,9 +209,19 @@ size_t CpuInfo::l2CacheSize() const
   return l2CacheSize_;
 }
 
+size_t CpuInfo::l3CacheSize() const
+{
+  return l3CacheSize_;
+}
+
 size_t CpuInfo::l2Sharing() const
 {
   return l2Sharing_;
+}
+
+size_t CpuInfo::l3Sharing() const
+{
+  return l3Sharing_;
 }
 
 size_t CpuInfo::threadsPerCore() const
@@ -246,10 +258,22 @@ bool CpuInfo::hasL2Cache() const
          l2CacheSize_ <= (1 << 30);
 }
 
+bool CpuInfo::hasL3Cache() const
+{
+  return l3CacheSize_ >= (1 << 15) &&
+         l3CacheSize_ <= (1 << 30);
+}
+
 bool CpuInfo::hasL2Sharing() const
 {
   return l2Sharing_ >= 1 &&
-         l2Sharing_ <= (1 << 10);
+         l2Sharing_ <= (1 << 15);
+}
+
+bool CpuInfo::hasL3Sharing() const
+{
+  return l3Sharing_ >= 1 &&
+         l3Sharing_ <= (1 << 20);
 }
 
 bool CpuInfo::hasThreadsPerCore() const
@@ -279,30 +303,35 @@ void CpuInfo::init()
 {
   size_t l1Length = sizeof(l1CacheSize_);
   size_t l2Length = sizeof(l2CacheSize_);
+  size_t l3Length = sizeof(l3CacheSize_);
 
   sysctlbyname("hw.l1dcachesize", &l1CacheSize_, &l1Length, NULL, 0);
   sysctlbyname("hw.l2cachesize" , &l2CacheSize_, &l2Length, NULL, 0);
+  sysctlbyname("hw.l3cachesize" , &l3CacheSize_, &l3Length, NULL, 0);
 
-  size_t size = 0;
+  size_t size = sizeof(cpuCores_);
+  sysctlbyname("hw.physicalcpu", &cpuCores_, &size, NULL, 0);
+  size_t cpuCores = max<size_t>(1, cpuCores_);
+
+  size = sizeof(cpuThreads_);
+  sysctlbyname("hw.logicalcpu", &cpuThreads_, &size, NULL, 0);
+  threadsPerCore_ = cpuThreads_ / cpuCores;
+
+  size = 0;
 
   if (!sysctlbyname("hw.cacheconfig", NULL, &size, NULL, 0))
   {
     size_t n = size / sizeof(size);
-    vector<size_t> cacheconfig(n);
+    vector<size_t> cacheConfig(n);
 
-    if (cacheconfig.size() > 2)
+    if (cacheConfig.size() > 2)
     {
       // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
-      sysctlbyname("hw.cacheconfig" , &cacheconfig[0], &size, NULL, 0);
-      l2Sharing_ = cacheconfig[2];
+      sysctlbyname("hw.cacheconfig" , &cacheConfig[0], &size, NULL, 0);
+      l2Sharing_ = cacheConfig[2];
 
-      size = sizeof(cpuCores_);
-      sysctlbyname("hw.physicalcpu", &cpuCores_, &size, NULL, 0);
-      size_t cpuCores = max<size_t>(1, cpuCores_);
-
-      size = sizeof(cpuThreads_);
-      sysctlbyname("hw.logicalcpu", &cpuThreads_, &size, NULL, 0);
-      threadsPerCore_ = cpuThreads_ / cpuCores;
+      if (cacheConfig.size() > 3)
+        l3Sharing_ = cacheConfig[3];
     }
   }
 }
@@ -357,13 +386,18 @@ void CpuInfo::init()
         l1CacheSize_ = info[i].Cache.Size;
       if (info[i].Cache.Level == 2)
         l2CacheSize_ = info[i].Cache.Size;
-
-      // if the CPU has an L3 cache we assume
-      // the L2 cache is private
-      if (info[i].Cache.Level == 3 &&
-          info[i].Cache.Size > 0)
-        l2Sharing_ = threadsPerCore_;
+      if (info[i].Cache.Level == 3)
+        l3CacheSize_ = info[i].Cache.Size;
     }
+  }
+
+  // if the CPU has an L3 cache we assume the
+  // L3 cache is shared among all CPU cores
+  // and that the L2 cache is private
+  if (hasL3Cache())
+  {
+    l2Sharing_ = threadsPerCore_;
+    l3Sharing_ = cpuThreads_;
   }
 
 // Windows 7 (2009) or later
@@ -393,7 +427,7 @@ void CpuInfo::init()
   {
     cpu = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[i];
 
-    // check L2 cache
+    // L2 cache
     if (cpu->Relationship == RelationCache &&
         cpu->Cache.GroupMask.Group == 0 &&
         cpu->Cache.Level == 2 &&
@@ -411,6 +445,29 @@ void CpuInfo::init()
       // Cache.GroupMask.Mask contains one bit set for
       // each logical CPU core sharing the cache
       for (; mask > 0; l2Sharing_++)
+        mask &= mask - 1;
+
+      break;
+    }
+
+    // L3 cache
+    if (cpu->Relationship == RelationCache &&
+        cpu->Cache.GroupMask.Group == 0 &&
+        cpu->Cache.Level == 3 &&
+        (cpu->Cache.Type == CacheData ||
+         cpu->Cache.Type == CacheUnified))
+    {
+      // @warning: GetLogicalProcessorInformationEx() reports
+      // incorrect data when Windows is run inside a virtual
+      // machine. Specifically the GROUP_AFFINITY.Mask will
+      // only have 1 or 2 bits set for each CPU cache (L1, L2 and
+      // L3) even if more logical CPU cores share the cache
+      auto mask = cpu->Cache.GroupMask.Mask;
+      l3Sharing_ = 0;
+
+      // Cache.GroupMask.Mask contains one bit set for
+      // each logical CPU core sharing the cache
+      for (; mask > 0; l3Sharing_++)
         mask &= mask - 1;
 
       break;
@@ -464,6 +521,17 @@ void CpuInfo::init()
       string sharedCpuMap = path + "/shared_cpu_map";
       l2CacheSize_ = getValue(cacheSize);
       l2Sharing_ = getThreads(sharedCpuList, sharedCpuMap);
+    }
+
+    if (level == 3 &&
+        (type == "Data" ||
+         type == "Unified"))
+    {
+      string cacheSize = path + "/size";
+      string sharedCpuList = path + "/shared_cpu_list";
+      string sharedCpuMap = path + "/shared_cpu_map";
+      l3CacheSize_ = getValue(cacheSize);
+      l3Sharing_ = getThreads(sharedCpuList, sharedCpuMap);
     }
   }
 }

@@ -23,14 +23,18 @@ public:
   bool hasCpuThreads() const;
   bool hasL1Cache() const;
   bool hasL2Cache() const;
+  bool hasL3Cache() const;
   bool hasL2Sharing() const;
+  bool hasL3Sharing() const;
   bool hasThreadsPerCore() const;
   bool hasHyperThreading() const;
   bool hasPrivateL2Cache() const;
   std::string getError() const;
   std::size_t l1CacheSize() const;
   std::size_t l2CacheSize() const;
+  std::size_t l3CacheSize() const;
   std::size_t l2Sharing() const;
+  std::size_t l3Sharing() const;
   std::size_t cpuCores() const;
   std::size_t cpuThreads() const;
   std::size_t threadsPerCore() const;
@@ -41,7 +45,9 @@ private:
   std::size_t cpuThreads_;
   std::size_t l1CacheSize_;
   std::size_t l2CacheSize_;
+  std::size_t l3CacheSize_;
   std::size_t l2Sharing_;
+  std::size_t l3Sharing_;
   std::size_t threadsPerCore_;
   std::string error_;
 };
