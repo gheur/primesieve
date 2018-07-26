@@ -180,6 +180,11 @@ Option makeOption(const string& str)
 
 void optionCpuInfo()
 {
+  if (cpuInfo.hasCpuName())
+    cout << cpuInfo.cpuName() << endl;
+  else
+    cout << "CPU name: not detected" << endl;
+
   if (cpuInfo.hasCpuCores())
     cout << "Number of cores: " << cpuInfo.cpuCores() << endl;
   else

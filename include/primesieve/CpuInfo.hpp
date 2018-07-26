@@ -19,6 +19,7 @@ class CpuInfo
 {
 public:
   CpuInfo();
+  bool hasCpuName() const;
   bool hasCpuCores() const;
   bool hasCpuThreads() const;
   bool hasL1Cache() const;
@@ -29,6 +30,7 @@ public:
   bool hasThreadsPerCore() const;
   bool hasHyperThreading() const;
   bool hasPrivateL2Cache() const;
+  std::string cpuName() const;
   std::string getError() const;
   std::size_t l1CacheSize() const;
   std::size_t l2CacheSize() const;
@@ -49,6 +51,7 @@ private:
   std::size_t l2Sharing_;
   std::size_t l3Sharing_;
   std::size_t threadsPerCore_;
+  std::string cpuName_;
   std::string error_;
 };
 

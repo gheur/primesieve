@@ -189,6 +189,11 @@ CpuInfo::CpuInfo() :
   }
 }
 
+string CpuInfo::cpuName() const
+{
+  return cpuName_;
+}
+
 size_t CpuInfo::cpuCores() const
 {
   return cpuCores_;
@@ -232,6 +237,11 @@ size_t CpuInfo::threadsPerCore() const
 string CpuInfo::getError() const
 {
   return error_;
+}
+
+bool CpuInfo::hasCpuName() const
+{
+  return !cpuName_.empty();
 }
 
 bool CpuInfo::hasCpuCores() const
@@ -301,6 +311,11 @@ bool CpuInfo::hasHyperThreading() const
 
 void CpuInfo::init()
 {
+  char cpuName[256];
+  size_t size = sizeof(cpuName);
+  sysctlbyname("machdep.cpu.brand_string", &cpuName, &size, NULL, 0);
+  cpuName_ = cpuName;
+
   size_t l1Length = sizeof(l1CacheSize_);
   size_t l2Length = sizeof(l2CacheSize_);
   size_t l3Length = sizeof(l3CacheSize_);
@@ -309,7 +324,7 @@ void CpuInfo::init()
   sysctlbyname("hw.l2cachesize" , &l2CacheSize_, &l2Length, NULL, 0);
   sysctlbyname("hw.l3cachesize" , &l3CacheSize_, &l3Length, NULL, 0);
 
-  size_t size = sizeof(cpuCores_);
+  size = sizeof(cpuCores_);
   sysctlbyname("hw.physicalcpu", &cpuCores_, &size, NULL, 0);
   size_t cpuCores = max<size_t>(1, cpuCores_);
 
