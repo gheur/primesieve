@@ -139,11 +139,12 @@ size_t parseThreadMap(const string& filename)
 
   for (auto& str : tokens)
   {
-    size_t bitmap = stoul(str, nullptr, 16);
-    while (bitmap > 0)
+    for (char c : str)
     {
-      threads++;
-      bitmap &= bitmap - 1;
+      string hexChar { c };
+      size_t bitmap = stoul(hexChar, nullptr, 16);
+      for (; bitmap > 0; threads++)
+        bitmap &= bitmap - 1;
     }
   }
 
