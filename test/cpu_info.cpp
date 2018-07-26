@@ -43,7 +43,7 @@ int main()
 
   if (cpuInfo.hasL2Cache())
   {
-    if (cpuInfo.privateL2Cache())
+    if (cpuInfo.hasPrivateL2Cache())
       cout << "L2 cache: private" << endl;
     else
       cout << "L2 cache: shared"  << endl;
