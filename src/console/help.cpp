@@ -29,6 +29,7 @@ const string helpMenu
   "\n"
   "  -c[N+], --count[=N+]    Count primes and prime k-tuplets, N <= 6,\n"
   "                          e.g. -c1 primes, -c2 twins, -c3 triplets, ...\n"
+  "          --cpu-info      Print CPU information\n"
   "  -d<N>,  --dist=<N>      Sieve the interval [START, START + N]\n"
   "  -h,     --help          Print this help menu\n"
   "  -n,     --nthprime      Calculate the nth prime,\n"

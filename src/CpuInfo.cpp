@@ -169,11 +169,13 @@ using namespace std;
 
 namespace primesieve {
 
-CpuInfo::CpuInfo()
-  : l1CacheSize_(0),
-    l2CacheSize_(0),
-    l2Sharing_(0),
-    threadsPerCore_(0)
+CpuInfo::CpuInfo() :
+  cpuCores_(0),
+  cpuThreads_(0),
+  l1CacheSize_(0),
+  l2CacheSize_(0),
+  l2Sharing_(0),
+  threadsPerCore_(0)
 {
   try
   {
@@ -183,6 +185,16 @@ CpuInfo::CpuInfo()
   {
     error_ = e.what();
   }
+}
+
+size_t CpuInfo::cpuCores() const
+{
+  return cpuCores_;
+}
+
+size_t CpuInfo::cpuThreads() const
+{
+  return cpuThreads_;
 }
 
 size_t CpuInfo::l1CacheSize() const
@@ -208,6 +220,18 @@ size_t CpuInfo::threadsPerCore() const
 string CpuInfo::getError() const
 {
   return error_;
+}
+
+bool CpuInfo::hasCpuCores() const
+{
+  return cpuCores_ >= 1 &&
+         cpuCores_ <= (1 << 20);
+}
+
+bool CpuInfo::hasCpuThreads() const
+{
+  return cpuThreads_ >= 1 &&
+         cpuThreads_ <= (1 << 20);
 }
 
 bool CpuInfo::hasL1Cache() const
@@ -272,15 +296,13 @@ void CpuInfo::init()
       sysctlbyname("hw.cacheconfig" , &cacheconfig[0], &size, NULL, 0);
       l2Sharing_ = cacheconfig[2];
 
-      size_t physicalcpu = 1;
-      size = sizeof(size);
-      sysctlbyname("hw.physicalcpu", &physicalcpu, &size, NULL, 0);
-      physicalcpu = max<size_t>(1, physicalcpu);
+      size = sizeof(cpuCores_);
+      sysctlbyname("hw.physicalcpu", &cpuCores_, &size, NULL, 0);
+      size_t cpuCores = max<size_t>(1, cpuCores_);
 
-      size_t logicalcpu = 1;
-      size = sizeof(size);
-      sysctlbyname("hw.logicalcpu", &logicalcpu, &size, NULL, 0);
-      threadsPerCore_ = logicalcpu / physicalcpu;
+      size = sizeof(cpuThreads_);
+      sysctlbyname("hw.logicalcpu", &cpuThreads_, &size, NULL, 0);
+      threadsPerCore_ = cpuThreads_ / cpuCores;
     }
   }
 }
@@ -399,9 +421,16 @@ void CpuInfo::init()
 ///
 void CpuInfo::init()
 {
+  string cpusOnline = "/sys/devices/system/cpu/online";
+  cpuCores_ = parseThreadList(cpusOnline);
+
   string threadSiblingsList = "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list";
   string threadSiblings = "/sys/devices/system/cpu/cpu0/topology/thread_siblings";
   threadsPerCore_ = getThreads(threadSiblingsList, threadSiblings);
+
+  if (hasCpuCores() &&
+      hasThreadsPerCore())
+    cpuThreads_ = cpuCores_ * threadsPerCore_;
 
   for (int i = 0; i <= 3; i++)
   {

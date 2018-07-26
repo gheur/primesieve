@@ -12,9 +12,11 @@
 #include "cmdoptions.hpp"
 
 #include <primesieve/calculator.hpp>
+#include <primesieve/CpuInfo.hpp>
 #include <primesieve/PrimeSieve.hpp>
 #include <primesieve/primesieve_error.hpp>
 
+#include <iostream>
 #include <string>
 #include <map>
 #include <cstddef>
@@ -47,6 +49,7 @@ struct Option
 enum OptionID
 {
   OPTION_COUNT,
+  OPTION_CPU_INFO,
   OPTION_HELP,
   OPTION_NTHPRIME,
   OPTION_NO_STATUS,
@@ -65,6 +68,7 @@ map<string, OptionID> optionMap =
 {
   { "-c",          OPTION_COUNT },
   { "--count",     OPTION_COUNT },
+  { "--cpu-info",  OPTION_CPU_INFO },
   { "-h",          OPTION_HELP },
   { "--help",      OPTION_HELP },
   { "-n",          OPTION_NTHPRIME },
@@ -174,6 +178,55 @@ Option makeOption(const string& str)
   return opt;
 }
 
+void optionCpuInfo()
+{
+  if (cpuInfo.hasCpuCores())
+    cout << "Number of cores: " << cpuInfo.cpuCores() << endl;
+  else
+    cout << "Number of cores: not detected" << endl;
+
+  if (cpuInfo.hasCpuThreads())
+    cout << "Number of threads: " << cpuInfo.cpuThreads() << endl;
+  else
+    cout << "Number of threads: not detected" << endl;
+
+  if (cpuInfo.hasHyperThreading())
+    cout << "Hyper-Threading: Yes" << endl;
+  else
+    cout << "Hyper-Threading: No" << endl;
+
+  if (cpuInfo.hasThreadsPerCore())
+    cout << "Threads per core: " << cpuInfo.threadsPerCore() << endl;
+  else
+    cout << "Threads per core: not detected" << endl;
+
+  if (cpuInfo.hasL1Cache())
+    cout << "L1 data cache: " << cpuInfo.l1CacheSize() / 1024 << " KB" << endl;
+  else
+    cout << "L1 data cache: not detected" << endl;
+
+  if (cpuInfo.hasL2Cache())
+    cout << "L2 cache: " << cpuInfo.l2CacheSize() / 1024 << " KB" << endl;
+  else
+    cout << "L2 cache: not detected" << endl;
+
+  if (cpuInfo.hasL2Cache())
+  {
+    if (cpuInfo.hasPrivateL2Cache())
+      cout << "Private L2 cache: Yes" << endl;
+    else
+      cout << "Private L2 cache: No" << endl;
+
+    if (!cpuInfo.hasL2Sharing())
+      cout << "L2 cache sharing: not detected" << endl;
+    else
+      cout << "L2 cache sharing: " << cpuInfo.l2Sharing()
+           << ((cpuInfo.l2Sharing() > 1) ? " threads" : " thread") << endl;
+  }
+
+  exit(0);
+}
+
 } // namespace
 
 CmdOptions parseOptions(int argc, char* argv[])
@@ -196,6 +249,7 @@ CmdOptions parseOptions(int argc, char* argv[])
       case OPTION_TIME:      opts.time = true; break;
       case OPTION_NUMBER:    opts.numbers.push_back(opt.getValue<uint64_t>()); break;
       case OPTION_DISTANCE:  opts.numbers.push_back(opt.getValue<uint64_t>() + opts.numbers[0]); break;
+      case OPTION_CPU_INFO:  optionCpuInfo(); break;
       case OPTION_VERSION:   version(); break;
       case OPTION_HELP:      help(); break;
     }
