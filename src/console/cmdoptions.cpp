@@ -190,11 +190,6 @@ void optionCpuInfo()
   else
     cout << "Number of threads: not detected" << endl;
 
-  if (cpuInfo.hasHyperThreading())
-    cout << "Hyper-Threading: Yes" << endl;
-  else
-    cout << "Hyper-Threading: No" << endl;
-
   if (cpuInfo.hasThreadsPerCore())
     cout << "Threads per core: " << cpuInfo.threadsPerCore() << endl;
   else
@@ -212,11 +207,6 @@ void optionCpuInfo()
 
   if (cpuInfo.hasL2Cache())
   {
-    if (cpuInfo.hasPrivateL2Cache())
-      cout << "Private L2 cache: Yes" << endl;
-    else
-      cout << "Private L2 cache: No" << endl;
-
     if (!cpuInfo.hasL2Sharing())
       cout << "L2 cache sharing: not detected" << endl;
     else
