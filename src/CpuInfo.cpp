@@ -538,15 +538,15 @@ void CpuInfo::init()
   cpuName_ = parseProcCpuInfo();
 
   string cpusOnline = "/sys/devices/system/cpu/online";
-  cpuCores_ = parseThreadList(cpusOnline);
+  cpuThreads_ = parseThreadList(cpusOnline);
 
   string threadSiblingsList = "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list";
   string threadSiblings = "/sys/devices/system/cpu/cpu0/topology/thread_siblings";
   threadsPerCore_ = getThreads(threadSiblingsList, threadSiblings);
 
-  if (hasCpuCores() &&
+  if (hasCpuThreads() &&
       hasThreadsPerCore())
-    cpuThreads_ = cpuCores_ * threadsPerCore_;
+    cpuCores_ = cpuThreads_ / threadsPerCore_;
 
   for (int i = 0; i <= 3; i++)
   {
