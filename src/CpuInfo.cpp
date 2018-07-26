@@ -98,6 +98,42 @@ size_t getValue(const string& filename)
   return val;
 }
 
+/// Get the CPU name from /proc/cpuinfo, e.g.:
+/// model name : Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+///
+string parseProcCpuInfo()
+{
+  ifstream file("/proc/cpuinfo");
+  string cpuName;
+
+  if (file)
+  {
+    string line;
+    string modelName = "model name";
+    size_t i = 0;
+
+    while (getline(file, line))
+    {
+      if (++i > 10)
+        break;
+
+      if (line.substr(0, modelName.size()) == modelName)
+      {
+        size_t pos = line.find_first_of(":");
+        if (pos != string::npos)
+        {
+          cpuName = line.substr(pos + 1);
+          pos = cpuName.find_first_not_of(" ");
+          if (pos != string::npos)
+            cpuName = cpuName.substr(pos);
+        }
+      }
+    }
+  }
+
+  return cpuName;
+}
+
 /// A thread list file contains a human
 /// readable list of thread IDs.
 /// https://www.kernel.org/doc/Documentation/cputopology.txt
@@ -499,6 +535,8 @@ void CpuInfo::init()
 ///
 void CpuInfo::init()
 {
+  cpuName_ = parseProcCpuInfo();
+
   string cpusOnline = "/sys/devices/system/cpu/online";
   cpuCores_ = parseThreadList(cpusOnline);
 
