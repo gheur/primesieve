@@ -334,13 +334,19 @@ void CpuInfo::init()
   {
     if (info[i].Relationship == RelationProcessorCore)
     {
+      cpuCores_++;
+      threadsPerCore_ = 0;
       auto mask = info[i].ProcessorMask;
 
       // ProcessorMask contains one bit set for
       // each logical CPU core related to the
       // current physical CPU core
-      for (threadsPerCore_ = 0; mask > 0; threadsPerCore_++)
+      while (mask > 0)
+      {
+        cpuThreads_++;
+        threadsPerCore_++;
         mask &= mask - 1;
+      }
     }
 
     if (info[i].Relationship == RelationCache &&
