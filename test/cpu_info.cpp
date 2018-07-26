@@ -24,6 +24,20 @@ int main()
     return 1;
   }
 
+  if (!cpuInfo.hasCpuCores() &&
+      cpuInfo.cpuCores() > 0)
+  {
+    cerr << "Invalid CPU cores: " << cpuInfo.cpuCores() << endl;
+    return 1;
+  }
+
+  if (!cpuInfo.hasCpuThreads() &&
+      cpuInfo.cpuThreads() > 0)
+  {
+    cerr << "Invalid CPU threads: " << cpuInfo.cpuThreads() << endl;
+    return 1;
+  }
+
   if (!cpuInfo.hasL1Cache() &&
       cpuInfo.l1CacheSize() > 0)
   {
@@ -35,6 +49,20 @@ int main()
       cpuInfo.l2CacheSize() > 0)
   {
     cerr << "Invalid L2 cache size: " << cpuInfo.l2CacheSize() << endl;
+    return 1;
+  }
+
+  if (!cpuInfo.hasL2Sharing() &&
+      cpuInfo.l2Sharing() > 0)
+  {
+    cerr << "Invalid L2 cache sharing: " << cpuInfo.l2Sharing() << endl;
+    return 1;
+  }
+
+  if (!cpuInfo.hasThreadsPerCore() &&
+      cpuInfo.threadsPerCore() > 0)
+  {
+    cerr << "Invalid threads per CPU core: " << cpuInfo.threadsPerCore() << endl;
     return 1;
   }
 
