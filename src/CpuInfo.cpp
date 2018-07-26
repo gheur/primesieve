@@ -37,7 +37,7 @@
 #include <sys/sysctl.h>
 #include <vector>
 
-#else // all other OSes
+#else // Linux
 
 #include <fstream>
 #include <sstream>
@@ -81,7 +81,7 @@ size_t getValue(const string& filename)
 
   if (!str.empty())
   {
-    val = stol(str);
+    val = stoul(str);
 
     // Last character may be:
     // 'K' = kilobytes
@@ -96,6 +96,68 @@ size_t getValue(const string& filename)
   }
 
   return val;
+}
+
+/// A thread list file contains a human
+/// readable list of thread IDs.
+/// https://www.kernel.org/doc/Documentation/cputopology.txt
+///
+size_t parseThreadList(const string& filename)
+{
+  size_t threads = 0;
+  auto threadList = getString(filename);
+  auto tokens = split(threadList, ',');
+
+  // tokens can be:
+  // 1) threadId
+  // 2) threadId1-threadId2
+  for (auto& str : tokens)
+  {
+    if (str.find('-') == string::npos)
+      threads++;
+    else
+    {
+      auto values = split(str, '-');
+      auto t0 = stoul(values.at(0));
+      auto t1 = stoul(values.at(1));
+      threads += t1 - t0 + 1;
+    }
+  }
+
+  return threads;
+}
+
+/// A thread map file contains a hexadecimal
+/// or binary string where each set bit
+/// corresponds to a specific thread ID.
+///
+size_t parseThreadMap(const string& filename)
+{
+  size_t threads = 0;
+  auto threadMap = getString(filename);
+  auto tokens = split(threadMap, ',');
+
+  for (auto& str : tokens)
+  {
+    size_t bitmap = stoul(str, nullptr, 16);
+    while (bitmap > 0)
+    {
+      threads++;
+      bitmap &= bitmap - 1;
+    }
+  }
+
+  return threads;
+}
+
+size_t getThreads(const string& threadList, const string& threadMap)
+{
+  size_t threads = parseThreadList(threadList);
+
+  if (threads != 0)
+    return threads;
+  else
+    return parseThreadMap(threadMap);
 }
 
 } // namespace
@@ -331,47 +393,29 @@ void CpuInfo::init()
 
 #else
 
-/// This works on Linux and Android. We also use this
-/// for all unknown OSes, it might work.
+/// This works on Linux. We also use this for
+/// all unknown OSes, it might work.
 ///
 void CpuInfo::init()
 {
+  string threadSiblingsList = "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list";
+  string threadSiblings = "/sys/devices/system/cpu/cpu0/topology/thread_siblings";
+  threadsPerCore_ = getThreads(threadSiblingsList, threadSiblings);
+
   for (int i = 0; i <= 3; i++)
   {
-    string filename = "/sys/devices/system/cpu/cpu0/cache/index" + to_string(i);
-    string threadSiblingsList = "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list";
-
-    string cacheLevel = filename + "/level";
-    string cacheSize = filename + "/size";
-    string sharedCpuList = filename + "/shared_cpu_list";
-    string cacheType = filename + "/type";
+    string path = "/sys/devices/system/cpu/cpu0/cache/index" + to_string(i);
+    string cacheLevel = path + "/level";
+    string cacheType = path + "/type";
 
     size_t level = getValue(cacheLevel);
     string type = getString(cacheType);
-    threadSiblingsList = getString(threadSiblingsList);
-    threadsPerCore_ = 0;
-
-    // Parse the thread_siblings_list
-    // content can be either: 
-    // 1) threadId1, threadId2, ...
-    // 2) threadId1-threadId2, ...
-    for (auto& str : split(threadSiblingsList, ','))
-    {
-      if (str.find('-') == string::npos)
-        threadsPerCore_++;
-      else
-      {
-        auto values = split(str, '-');
-        auto threadId0 = stoi(values.at(0));
-        auto threadId1 = stoi(values.at(1));
-        threadsPerCore_ += threadId1 - threadId0 + 1;
-      }
-    }
 
     if (level == 1 &&
         (type == "Data" ||
          type == "Unified"))
     {
+      string cacheSize = path + "/size";
       l1CacheSize_ = getValue(cacheSize);
     }
 
@@ -379,13 +423,11 @@ void CpuInfo::init()
         (type == "Data" ||
          type == "Unified"))
     {
+      string cacheSize = path + "/size";
+      string sharedCpuList = path + "/shared_cpu_list";
+      string sharedCpuMap = path + "/shared_cpu_map";
       l2CacheSize_ = getValue(cacheSize);
-      sharedCpuList = getString(sharedCpuList);
-
-      // https://lwn.net/Articles/254445/
-      if (!sharedCpuList.empty() &&
-          sharedCpuList == threadSiblingsList)
-        l2Sharing_ = threadsPerCore_;
+      l2Sharing_ = getThreads(sharedCpuList, sharedCpuMap);
     }
   }
 }
