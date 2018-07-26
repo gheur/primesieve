@@ -183,42 +183,42 @@ void optionCpuInfo()
   if (cpuInfo.hasCpuName())
     cout << cpuInfo.cpuName() << endl;
   else
-    cout << "CPU name: not detected" << endl;
+    cout << "CPU name: unknown" << endl;
 
   if (cpuInfo.hasCpuCores())
     cout << "Number of cores: " << cpuInfo.cpuCores() << endl;
   else
-    cout << "Number of cores: not detected" << endl;
+    cout << "Number of cores: unknown" << endl;
 
   if (cpuInfo.hasCpuThreads())
     cout << "Number of threads: " << cpuInfo.cpuThreads() << endl;
   else
-    cout << "Number of threads: not detected" << endl;
+    cout << "Number of threads: unknown" << endl;
 
   if (cpuInfo.hasThreadsPerCore())
     cout << "Threads per core: " << cpuInfo.threadsPerCore() << endl;
   else
-    cout << "Threads per core: not detected" << endl;
+    cout << "Threads per core: unknown" << endl;
 
   if (cpuInfo.hasL1Cache())
     cout << "L1 cache size: " << cpuInfo.l1CacheSize() / (1 << 10) << " KB" << endl;
   else
-    cout << "L1 cache size: not detected" << endl;
+    cout << "L1 cache size: unknown" << endl;
 
   if (cpuInfo.hasL2Cache())
     cout << "L2 cache size: " << cpuInfo.l2CacheSize() / (1 << 10) << " KB" << endl;
   else
-    cout << "L2 cache size: not detected" << endl;
+    cout << "L2 cache size: unknown" << endl;
 
   if (cpuInfo.hasL3Cache())
     cout << "L3 cache size: " << cpuInfo.l3CacheSize() / (double) (1 << 20) << " MB" << endl;
   else
-    cout << "L3 cache: not detected" << endl;
+    cout << "L3 cache size: unknown" << endl;
 
   if (cpuInfo.hasL2Cache())
   {
     if (!cpuInfo.hasL2Sharing())
-      cout << "L2 cache sharing: not detected" << endl;
+      cout << "L2 cache sharing: unknown" << endl;
     else
       cout << "L2 cache sharing: " << cpuInfo.l2Sharing()
            << ((cpuInfo.l2Sharing() > 1) ? " threads" : " thread") << endl;
@@ -227,7 +227,7 @@ void optionCpuInfo()
   if (cpuInfo.hasL3Cache())
   {
     if (!cpuInfo.hasL3Sharing())
-      cout << "L3 cache sharing: not detected" << endl;
+      cout << "L3 cache sharing: unknown" << endl;
     else
       cout << "L3 cache sharing: " << cpuInfo.l3Sharing()
            << ((cpuInfo.l3Sharing() > 1) ? " threads" : " thread") << endl;
