@@ -41,6 +41,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <regex>
 
 using namespace std;
 
@@ -98,40 +99,39 @@ size_t getValue(const string& filename)
   return val;
 }
 
-/// Get the CPU name from /proc/cpuinfo, e.g.:
-/// model name : Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
-///
-string parseProcCpuInfo()
+string parseCpuName()
 {
   ifstream file("/proc/cpuinfo");
-  string cpuName;
+  string notFound;
 
   if (file)
   {
+    // Examples of CPU names:
+    // model name : Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+    // Processor  : ARMv7 Processor rev 5 (v7l)
+    // cpu        : POWER9 (raw), altivec supported
+    //
+    regex reg("^(model\\sname|Processor|cpu)\\s+:\\s+");
+    smatch match;
     string line;
-    string modelName = "model name";
     size_t i = 0;
 
     while (getline(file, line))
     {
+      if (regex_search(line, match, reg))
+      {
+        size_t pos = match.str().size();
+        string cpuName = line.substr(pos);
+        if (cpuName.find_first_not_of("0123456789") != string::npos)
+          return cpuName;
+      }
+
       if (++i > 10)
         break;
-
-      if (line.substr(0, modelName.size()) == modelName)
-      {
-        size_t pos = line.find_first_of(":");
-        if (pos != string::npos)
-        {
-          cpuName = line.substr(pos + 1);
-          pos = cpuName.find_first_not_of(" ");
-          if (pos != string::npos)
-            cpuName = cpuName.substr(pos);
-        }
-      }
     }
   }
 
-  return cpuName;
+  return notFound;
 }
 
 /// A thread list file contains a human
@@ -535,7 +535,7 @@ void CpuInfo::init()
 ///
 void CpuInfo::init()
 {
-  cpuName_ = parseProcCpuInfo();
+  cpuName_ = parseCpuName();
 
   string cpusOnline = "/sys/devices/system/cpu/online";
   cpuThreads_ = parseThreadList(cpusOnline);
