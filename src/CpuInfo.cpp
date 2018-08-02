@@ -82,7 +82,7 @@ string getCpuName()
     copy_n(cpuInfo, 4, back_inserter(vect));
 
     vect.push_back(0);
-    cpuName = vect.data();
+    cpuName = (char*) vect.data();
   }
 
   return cpuName;
