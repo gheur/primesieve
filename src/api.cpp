@@ -203,7 +203,7 @@ int get_sieve_size(uint64_t stop)
     if (cpuInfo.hasHyperThreading())
     {
       size_t size = l2CacheSize;
-      size /= inBetween(1, cpuInfo.l2Sharing(), 4);
+      size /= cpuInfo.l2Sharing();
       size = inBetween(32, size, 4096);
       size = floorPow2(size);
 

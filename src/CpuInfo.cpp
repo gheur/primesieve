@@ -26,16 +26,71 @@
   #endif
 #endif
 
-#if defined(_WIN32)
-
-#include <windows.h>
-#include <vector>
-
-#elif defined(APPLE_SYSCTL)
+#if defined(APPLE_SYSCTL)
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <vector>
+
+#elif defined(_WIN32)
+
+#include <windows.h>
+#include <vector>
+
+#if defined(_MSC_VER)
+  #if defined(_M_IX86) || defined(_M_X64) || defined(_M_AMD64)
+    #if !defined(__has_include)
+      #define HAS_CPUID
+    #elif __has_include(<intrin.h>)
+      #define HAS_CPUID
+    #endif
+  #endif
+#endif
+
+#if defined(HAS_CPUID)
+
+#include <intrin.h>
+#include <algorithm>
+#include <iterator>
+
+using namespace std;
+
+namespace {
+
+/// Get the CPU name using CPUID.
+/// Example: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/// https://en.wikipedia.org/wiki/CPUID#EAX=80000002h,80000003h,80000004h:_Processor_Brand_String
+///
+string getCpuName()
+{
+  string cpuName;
+  vector<int> vect;
+  int cpuInfo[4] = { 0, 0, 0, 0 };
+
+  __cpuid(cpuInfo, 0x80000000);
+
+  // check if CPU name is supported
+  if ((unsigned int) cpuInfo[0] >= 0x80000004u)
+  {
+    __cpuid(cpuInfo, 0x80000002);
+    copy_n(cpuInfo, 4, back_inserter(vect));
+
+    __cpuid(cpuInfo, 0x80000003);
+    copy_n(cpuInfo, 4, back_inserter(vect));
+
+    __cpuid(cpuInfo, 0x80000004);
+    copy_n(cpuInfo, 4, back_inserter(vect));
+
+    vect.push_back(0);
+    cpuName = vect.data();
+  }
+
+  return cpuName;
+}
+
+} // namespace
+
+#endif
 
 #else // Linux
 
@@ -99,7 +154,7 @@ size_t getValue(const string& filename)
   return val;
 }
 
-string parseCpuName()
+string getCpuName()
 {
   ifstream file("/proc/cpuinfo");
   string notFound;
@@ -307,7 +362,7 @@ bool CpuInfo::hasL2Cache() const
 bool CpuInfo::hasL3Cache() const
 {
   return l3CacheSize_ >= (1 << 15) &&
-         l3CacheSize_ <= (1 << 30);
+         l3CacheSize_ <= (1ull << 40);
 }
 
 bool CpuInfo::hasL2Sharing() const
@@ -337,10 +392,8 @@ bool CpuInfo::hasPrivateL2Cache() const
 
 bool CpuInfo::hasHyperThreading() const
 {
-  return hasL2Sharing() &&
-         hasThreadsPerCore() &&
-         l2Sharing_ >= 2 &&
-         l2Sharing_ <= threadsPerCore_;
+  return hasThreadsPerCore() &&
+         threadsPerCore_ > 1;
 }
 
 #if defined(APPLE_SYSCTL)
@@ -391,6 +444,10 @@ void CpuInfo::init()
 
 void CpuInfo::init()
 {
+#if defined(HAS_CPUID)
+  cpuName_ = getCpuName();
+#endif
+
   typedef BOOL (WINAPI *LPFN_GLPI)(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION, PDWORD);
 
   LPFN_GLPI glpi = (LPFN_GLPI) GetProcAddress(GetModuleHandle(TEXT("kernel32")), "GetLogicalProcessorInformation");
@@ -535,7 +592,7 @@ void CpuInfo::init()
 ///
 void CpuInfo::init()
 {
-  cpuName_ = parseCpuName();
+  cpuName_ = getCpuName();
 
   string cpusOnline = "/sys/devices/system/cpu/online";
   cpuThreads_ = parseThreadList(cpusOnline);
