@@ -618,7 +618,7 @@ void CpuInfo::init()
     return;
 
   bytes = 0;
-  glpiex(RelationCache, 0, &bytes);
+  glpiex(RelationAll, 0, &bytes);
 
   if (!bytes)
     return;
@@ -626,7 +626,7 @@ void CpuInfo::init()
   vector<char> buffer(bytes);
   SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* cpu;
 
-  if (!glpiex(RelationCache, (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[0], &bytes))
+  if (!glpiex(RelationAll, (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[0], &bytes))
     return;
 
   for (size_t i = 0; i < bytes; i += cpu->Size)
