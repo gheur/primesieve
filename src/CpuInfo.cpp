@@ -654,7 +654,7 @@ void CpuInfo::init()
 
       // Cache.GroupMask.Mask contains one bit set for
       // each logical CPU core sharing the cache
-      for (; mask > 0; cacheSharing++)
+      for (cacheSharing = 0; mask > 0; cacheSharing++)
         mask &= mask - 1;
     }
   }
