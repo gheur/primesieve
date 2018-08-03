@@ -37,21 +37,79 @@
 #include <windows.h>
 #include <vector>
 
-#if defined(_MSC_VER)
-  #if defined(_M_IX86) || defined(_M_X64) || defined(_M_AMD64)
-    #if !defined(__has_include)
-      #define HAS_CPUID
-    #elif __has_include(<intrin.h>)
-      #define HAS_CPUID
-    #endif
-  #endif
+#if defined(__i386__) || \
+    defined(_M_IX86) || \
+    defined(__x86_64__) || \
+    defined(_M_X64) || \
+    defined(_M_AMD64)
+  #define IS_X86
 #endif
 
-#if defined(HAS_CPUID)
+#if defined(IS_X86)
 
-#include <intrin.h>
 #include <algorithm>
 #include <iterator>
+
+#if defined(_MSC_VER)
+  #if !defined(__has_include)
+    #include <intrin.h>
+    #define MSVC_CPUID
+  #elif __has_include(<intrin.h>)
+    #include <intrin.h>
+    #define MSVC_CPUID
+  #endif
+#elif defined(__GNUC__) || \
+      defined(__clang__)
+  #define GNUC_CPUID
+#endif
+
+namespace {
+
+void cpuId(int cpuInfo[4], int eax)
+{
+#if defined(MSVC_CPUID)
+  __cpuid(cpuInfo, eax);
+#elif defined(GNUC_CPUID)
+  int ebx = 0;
+  int ecx = 0;
+  int edx = 0;
+
+  #if defined(__i386__) && \
+      defined(__PIC__)
+    // in case of PIC under 32-bit EBX cannot be clobbered
+    __asm__ ("movl %%ebx, %%edi;"
+             "cpuid;"
+             "xchgl %%ebx, %%edi;"
+             : "+a" (eax),
+               "=D" (ebx),
+               "=c" (ecx),
+               "=d" (edx));
+  #else
+    __asm__ ("cpuid;"
+             : "+a" (eax),
+               "=b" (ebx),
+               "=c" (ecx),
+               "=d" (edx));
+  #endif
+
+  cpuInfo[0] = eax;
+  cpuInfo[1] = ebx;
+  cpuInfo[2] = ecx;
+  cpuInfo[3] = edx;
+#else
+  // CPUID is not supported
+  eax = 0;
+
+  cpuInfo[0] = eax;
+  cpuInfo[1] = 0;
+  cpuInfo[2] = 0;
+  cpuInfo[3] = 0;
+#endif
+}
+
+} // namespace
+
+#endif
 
 using namespace std;
 
@@ -64,33 +122,36 @@ namespace {
 string getCpuName()
 {
   string cpuName;
+
+#if defined(IS_X86)
+
   vector<int> vect;
   int cpuInfo[4] = { 0, 0, 0, 0 };
 
-  __cpuid(cpuInfo, 0x80000000);
+  cpuId(cpuInfo, 0x80000000);
 
   // check if CPU name is supported
   if ((unsigned int) cpuInfo[0] >= 0x80000004u)
   {
-    __cpuid(cpuInfo, 0x80000002);
+    cpuId(cpuInfo, 0x80000002);
     copy_n(cpuInfo, 4, back_inserter(vect));
 
-    __cpuid(cpuInfo, 0x80000003);
+    cpuId(cpuInfo, 0x80000003);
     copy_n(cpuInfo, 4, back_inserter(vect));
 
-    __cpuid(cpuInfo, 0x80000004);
+    cpuId(cpuInfo, 0x80000004);
     copy_n(cpuInfo, 4, back_inserter(vect));
 
     vect.push_back(0);
     cpuName = (char*) vect.data();
   }
 
+#endif
+
   return cpuName;
 }
 
 } // namespace
-
-#endif
 
 #else // Linux
 
@@ -356,19 +417,19 @@ bool CpuInfo::hasL1Cache() const
 bool CpuInfo::hasL2Cache() const
 {
   return l2CacheSize_ >= (1 << 12) &&
-         l2CacheSize_ <= (1 << 30);
+         l2CacheSize_ <= (1ull << 40);
 }
 
 bool CpuInfo::hasL3Cache() const
 {
-  return l3CacheSize_ >= (1 << 15) &&
+  return l3CacheSize_ >= (1 << 12) &&
          l3CacheSize_ <= (1ull << 40);
 }
 
 bool CpuInfo::hasL2Sharing() const
 {
   return l2Sharing_ >= 1 &&
-         l2Sharing_ <= (1 << 15);
+         l2Sharing_ <= (1 << 20);
 }
 
 bool CpuInfo::hasL3Sharing() const
@@ -444,12 +505,9 @@ void CpuInfo::init()
 
 void CpuInfo::init()
 {
-#if defined(HAS_CPUID)
   cpuName_ = getCpuName();
-#endif
 
   typedef BOOL (WINAPI *LPFN_GLPI)(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION, PDWORD);
-
   LPFN_GLPI glpi = (LPFN_GLPI) GetProcAddress(GetModuleHandle(TEXT("kernel32")), "GetLogicalProcessorInformation");
 
   if (!glpi)
@@ -512,7 +570,6 @@ void CpuInfo::init()
 #if _WIN32_WINNT >= 0x0601
 
   typedef BOOL (WINAPI *LPFN_GLPIEX)(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD);
-
   LPFN_GLPIEX glpiex = (LPFN_GLPIEX) GetProcAddress(
       GetModuleHandle(TEXT("kernel32")), "GetLogicalProcessorInformationEx");
 
