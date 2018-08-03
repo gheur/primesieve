@@ -32,12 +32,24 @@ using namespace std;
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
-#include <vector>
+
+namespace {
+
+string getCpuName()
+{
+  char cpuName[256];
+  size_t size = sizeof(cpuName);
+  sysctlbyname("machdep.cpu.brand_string", &cpuName, &size, NULL, 0);
+  string cpuName = cpuName;
+
+  return cpuName;
+}
+
+} // namespace
 
 #elif defined(_WIN32)
 
 #include <windows.h>
-#include <vector>
 
 #if defined(__i386__) || \
     defined(_M_IX86) || \
@@ -505,10 +517,7 @@ bool CpuInfo::hasHyperThreading() const
 
 void CpuInfo::init()
 {
-  char cpuName[256];
-  size_t size = sizeof(cpuName);
-  sysctlbyname("machdep.cpu.brand_string", &cpuName, &size, NULL, 0);
-  cpuName_ = cpuName;
+  cpuName_ = getCpuName();
 
   size_t l1Length = sizeof(l1CacheSize_);
   size_t l2Length = sizeof(l2CacheSize_);
@@ -518,7 +527,7 @@ void CpuInfo::init()
   sysctlbyname("hw.l2cachesize" , &l2CacheSize_, &l2Length, NULL, 0);
   sysctlbyname("hw.l3cachesize" , &l3CacheSize_, &l3Length, NULL, 0);
 
-  size = sizeof(cpuCores_);
+  size_t size = sizeof(cpuCores_);
   sysctlbyname("hw.physicalcpu", &cpuCores_, &size, NULL, 0);
   size_t cpuCores = max<size_t>(1, cpuCores_);
 
