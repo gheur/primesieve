@@ -20,5 +20,8 @@ build_script:
 
 test_script:
   - ctest -C Release
+  - Release\primesieve.exe 1e10 -t1
+  - Release\primesieve.exe 1e10 -t1
+  - Release\primesieve.exe 1e10
   - Release\primesieve.exe 1e10
   - Release\primesieve.exe --cpu-info
