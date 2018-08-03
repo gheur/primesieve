@@ -70,6 +70,10 @@ script:
   # 6) Test using valgrind
   - $CXX -Iinclude -O2 -std=c++11 -g src/*.cpp examples/cpp/nth_prime.cpp -o nth_prime -lpthread
   - valgrind --error-exitcode=1 ./nth_prime 500000000
-  # 7) Test using cppcheck
+  # 7) Print CPU info
+  - cd build
+  - ./primesieve --cpu-info
+  # 8) Test using cppcheck
+  - cd ..
   - rm -rf build
   - cppcheck . -q --error-exitcode=1 -iexamples/cpp/prev_prime.cpp -iexamples/cpp/primesieve_iterator.cpp -itest/next_prime1.cpp -itest/prev_prime1.cpp
