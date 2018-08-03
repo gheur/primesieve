@@ -121,22 +121,18 @@ void cpuId(int cpuInfo[4], int eax)
 #endif
 }
 
-/// Remove all leading and trailing space
-/// characters from a string.
+/// Remove all leading and trailing
+/// space characters.
 ///
 void trimString(string& str)
 {
   string spaceChars = " \f\n\r\t\v";
   size_t pos = str.find_first_not_of(spaceChars);
-
-  if (pos != string::npos)
-    str.erase(0, pos);
+  str.erase(0, pos);
 
   reverse(str.begin(), str.end());
   pos = str.find_first_not_of(spaceChars);
-
-  if (pos != string::npos)
-    str.erase(0, pos);
+  str.erase(0, pos);
 
   reverse(str.begin(), str.end());
 }
@@ -195,22 +191,18 @@ string getCpuName()
 
 namespace {
 
-/// Remove all leading and trailing space
-/// characters from a string.
+/// Remove all leading and trailing
+/// space characters.
 ///
 void trimString(string& str)
 {
   string spaceChars = " \f\n\r\t\v";
   size_t pos = str.find_first_not_of(spaceChars);
-
-  if (pos != string::npos)
-    str.erase(0, pos);
+  str.erase(0, pos);
 
   reverse(str.begin(), str.end());
   pos = str.find_first_not_of(spaceChars);
-
-  if (pos != string::npos)
-    str.erase(0, pos);
+  str.erase(0, pos);
 
   reverse(str.begin(), str.end());
 }

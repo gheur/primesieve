@@ -178,6 +178,10 @@ Option makeOption(const string& str)
   return opt;
 }
 
+/// Option: --cpu-info
+/// Prints information about the CPU and
+/// its L1, L2 and L3 caches.
+///
 void optionCpuInfo()
 {
   if (cpuInfo.hasCpuName())
@@ -202,18 +206,21 @@ void optionCpuInfo()
 
   if (cpuInfo.hasL1Cache())
     cout << "L1 cache size: " << cpuInfo.l1CacheSize() / (1 << 10) << " KB" << endl;
-  else
-    cout << "L1 cache size: unknown" << endl;
 
   if (cpuInfo.hasL2Cache())
     cout << "L2 cache size: " << cpuInfo.l2CacheSize() / (1 << 10) << " KB" << endl;
-  else
-    cout << "L2 cache size: unknown" << endl;
 
   if (cpuInfo.hasL3Cache())
     cout << "L3 cache size: " << cpuInfo.l3CacheSize() / (double) (1 << 20) << " MB" << endl;
-  else
-    cout << "L3 cache size: unknown" << endl;
+
+  if (cpuInfo.hasL1Cache())
+  {
+    if (!cpuInfo.hasL1Sharing())
+      cout << "L1 cache sharing: unknown" << endl;
+    else
+      cout << "L1 cache sharing: " << cpuInfo.l1Sharing()
+           << ((cpuInfo.l1Sharing() > 1) ? " threads" : " thread") << endl;
+  }
 
   if (cpuInfo.hasL2Cache())
   {
@@ -231,6 +238,18 @@ void optionCpuInfo()
     else
       cout << "L3 cache sharing: " << cpuInfo.l3Sharing()
            << ((cpuInfo.l3Sharing() > 1) ? " threads" : " thread") << endl;
+  }
+
+  if (!cpuInfo.hasL1Cache() &&
+      !cpuInfo.hasL2Cache() &&
+      !cpuInfo.hasL3Cache())
+  {
+    cout << "L1 cache size: unknown" << endl;
+    cout << "L2 cache size: unknown" << endl;
+    cout << "L3 cache size: unknown" << endl;
+    cout << "L1 cache sharing: unknown" << endl;
+    cout << "L2 cache sharing: unknown" << endl;
+    cout << "L3 cache sharing: unknown" << endl;
   }
 
   exit(0);
