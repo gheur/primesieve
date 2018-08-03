@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 #if defined(__APPLE__)
   #if !defined(__has_include)
     #define APPLE_SYSCTL
@@ -107,11 +109,29 @@ void cpuId(int cpuInfo[4], int eax)
 #endif
 }
 
+/// Remove all leading and trailing space
+/// characters from a string.
+///
+void trimString(string& str)
+{
+  string spaceChars = " \f\n\r\t\v";
+  size_t pos = str.find_first_not_of(spaceChars);
+
+  if (pos != string::npos)
+    str.erase(0, pos);
+
+  reverse(str.begin(), str.end());
+  pos = str.find_first_not_of(spaceChars);
+
+  if (pos != string::npos)
+    str.erase(0, pos);
+
+  reverse(str.begin(), str.end());
+}
+
 } // namespace
 
 #endif
-
-using namespace std;
 
 namespace {
 
@@ -144,6 +164,7 @@ string getCpuName()
 
     vect.push_back(0);
     cpuName = (char*) vect.data();
+    trimString(cpuName);
   }
 
 #endif
@@ -156,23 +177,29 @@ string getCpuName()
 #else // Linux
 
 #include <fstream>
-#include <sstream>
 #include <regex>
-
-using namespace std;
+#include <sstream>
 
 namespace {
 
-vector<string> split(const string& s, char delimiter)
+/// Remove all leading and trailing space
+/// characters from a string.
+///
+void trimString(string& str)
 {
-   vector<string> tokens;
-   string token;
-   istringstream tokenStream(s);
+  string spaceChars = " \f\n\r\t\v";
+  size_t pos = str.find_first_not_of(spaceChars);
 
-   while (getline(tokenStream, token, delimiter))
-      tokens.push_back(token);
+  if (pos != string::npos)
+    str.erase(0, pos);
 
-   return tokens;
+  reverse(str.begin(), str.end());
+  pos = str.find_first_not_of(spaceChars);
+
+  if (pos != string::npos)
+    str.erase(0, pos);
+
+  reverse(str.begin(), str.end());
 }
 
 string getString(const string& filename)
@@ -182,6 +209,7 @@ string getString(const string& filename)
 
   if (file)
   {
+    // Remove all space characters
     // https://stackoverflow.com/a/3177560/363778
     stringstream trimmer;
     trimmer << file.rdbuf();
@@ -215,6 +243,18 @@ size_t getValue(const string& filename)
   return val;
 }
 
+vector<string> split(const string& s, char delimiter)
+{
+   vector<string> tokens;
+   string token;
+   istringstream tokenStream(s);
+
+   while (getline(tokenStream, token, delimiter))
+      tokens.push_back(token);
+
+   return tokens;
+}
+
 string getCpuName()
 {
   ifstream file("/proc/cpuinfo");
@@ -227,7 +267,7 @@ string getCpuName()
     // Processor  : ARMv7 Processor rev 5 (v7l)
     // cpu        : POWER9 (raw), altivec supported
     //
-    regex reg("^(model\\sname|Processor|cpu)\\s+:\\s+");
+    regex reg("^(model\\sname|Processor|cpu)\\s+:");
     smatch match;
     string line;
     size_t i = 0;
@@ -238,6 +278,7 @@ string getCpuName()
       {
         size_t pos = match.str().size();
         string cpuName = line.substr(pos);
+        trimString(cpuName);
         if (cpuName.find_first_not_of("0123456789") != string::npos)
           return cpuName;
       }
@@ -316,8 +357,6 @@ size_t getThreads(const string& threadList, const string& threadMap)
 } // namespace
 
 #endif
-
-using namespace std;
 
 namespace primesieve {
 
