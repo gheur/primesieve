@@ -37,10 +37,10 @@ namespace {
 
 string getCpuName()
 {
-  char cpuName[256];
-  size_t size = sizeof(cpuName);
-  sysctlbyname("machdep.cpu.brand_string", &cpuName, &size, NULL, 0);
-  string cpuName = cpuName;
+  char buffer[256];
+  size_t size = sizeof(buffer);
+  sysctlbyname("machdep.cpu.brand_string", &buffer, &size, NULL, 0);
+  string cpuName = buffer;
 
   return cpuName;
 }
