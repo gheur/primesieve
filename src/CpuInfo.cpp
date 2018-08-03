@@ -380,12 +380,9 @@ namespace primesieve {
 CpuInfo::CpuInfo() :
   cpuCores_(0),
   cpuThreads_(0),
-  l1CacheSize_(0),
-  l2CacheSize_(0),
-  l3CacheSize_(0),
-  l2Sharing_(0),
-  l3Sharing_(0),
-  threadsPerCore_(0)
+  threadsPerCore_(0),
+  cacheSizes_{0, 0, 0, 0},
+  cacheSharing_{0, 0, 0, 0}
 {
   try
   {
@@ -414,27 +411,32 @@ size_t CpuInfo::cpuThreads() const
 
 size_t CpuInfo::l1CacheSize() const
 {
-  return l1CacheSize_;
+  return cacheSizes_[1];
 }
 
 size_t CpuInfo::l2CacheSize() const
 {
-  return l2CacheSize_;
+  return cacheSizes_[2];
 }
 
 size_t CpuInfo::l3CacheSize() const
 {
-  return l3CacheSize_;
+  return cacheSizes_[3];
+}
+
+size_t CpuInfo::l1Sharing() const
+{
+  return cacheSharing_[1];
 }
 
 size_t CpuInfo::l2Sharing() const
 {
-  return l2Sharing_;
+  return cacheSharing_[2];
 }
 
 size_t CpuInfo::l3Sharing() const
 {
-  return l3Sharing_;
+  return cacheSharing_[3];
 }
 
 size_t CpuInfo::threadsPerCore() const
@@ -466,32 +468,38 @@ bool CpuInfo::hasCpuThreads() const
 
 bool CpuInfo::hasL1Cache() const
 {
-  return l1CacheSize_ >= (1 << 12) &&
-         l1CacheSize_ <= (1 << 30);
+  return cacheSizes_[1] >= (1 << 12) &&
+         cacheSizes_[1] <= (1 << 30);
 }
 
 bool CpuInfo::hasL2Cache() const
 {
-  return l2CacheSize_ >= (1 << 12) &&
-         l2CacheSize_ <= (1ull << 40);
+  return cacheSizes_[2] >= (1 << 12) &&
+         cacheSizes_[2] <= (1ull << 40);
 }
 
 bool CpuInfo::hasL3Cache() const
 {
-  return l3CacheSize_ >= (1 << 12) &&
-         l3CacheSize_ <= (1ull << 40);
+  return cacheSizes_[3] >= (1 << 12) &&
+         cacheSizes_[3] <= (1ull << 40);
+}
+
+bool CpuInfo::hasL1Sharing() const
+{
+  return cacheSharing_[1] >= 1 &&
+         cacheSharing_[1] <= (1 << 20);
 }
 
 bool CpuInfo::hasL2Sharing() const
 {
-  return l2Sharing_ >= 1 &&
-         l2Sharing_ <= (1 << 20);
+  return cacheSharing_[2] >= 1 &&
+         cacheSharing_[2] <= (1 << 20);
 }
 
 bool CpuInfo::hasL3Sharing() const
 {
-  return l3Sharing_ >= 1 &&
-         l3Sharing_ <= (1 << 20);
+  return cacheSharing_[3] >= 1 &&
+         cacheSharing_[3] <= (1 << 20);
 }
 
 bool CpuInfo::hasThreadsPerCore() const
@@ -504,7 +512,7 @@ bool CpuInfo::hasPrivateL2Cache() const
 {
   return hasL2Sharing() &&
          hasThreadsPerCore() &&
-         l2Sharing_ <= threadsPerCore_;
+         cacheSharing_[2] <= threadsPerCore_;
 }
 
 bool CpuInfo::hasHyperThreading() const
@@ -519,13 +527,13 @@ void CpuInfo::init()
 {
   cpuName_ = getCpuName();
 
-  size_t l1Length = sizeof(l1CacheSize_);
-  size_t l2Length = sizeof(l2CacheSize_);
-  size_t l3Length = sizeof(l3CacheSize_);
+  size_t size1 = sizeof(size_t);
+  size_t size2 = sizeof(size_t);
+  size_t size3 = sizeof(size_t);
 
-  sysctlbyname("hw.l1dcachesize", &l1CacheSize_, &l1Length, NULL, 0);
-  sysctlbyname("hw.l2cachesize" , &l2CacheSize_, &l2Length, NULL, 0);
-  sysctlbyname("hw.l3cachesize" , &l3CacheSize_, &l3Length, NULL, 0);
+  sysctlbyname("hw.l1dcachesize", &cacheSizes_[1], &size1, NULL, 0);
+  sysctlbyname("hw.l2cachesize" , &cacheSizes_[2], &size2, NULL, 0);
+  sysctlbyname("hw.l3cachesize" , &cacheSizes_[3], &size3, NULL, 0);
 
   size_t size = sizeof(cpuCores_);
   sysctlbyname("hw.physicalcpu", &cpuCores_, &size, NULL, 0);
@@ -542,14 +550,13 @@ void CpuInfo::init()
     size_t n = size / sizeof(size);
     vector<size_t> cacheConfig(n);
 
-    if (cacheConfig.size() > 2)
+    if (cacheConfig.size() > 1)
     {
       // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
       sysctlbyname("hw.cacheconfig" , &cacheConfig[0], &size, NULL, 0);
-      l2Sharing_ = cacheConfig[2];
 
-      if (cacheConfig.size() > 3)
-        l3Sharing_ = cacheConfig[3];
+      for (size_t i = 1; i < cacheConfig.size(); i++)
+        cacheSharing_[i] = cacheConfig[i];
     }
   }
 }
@@ -598,25 +605,14 @@ void CpuInfo::init()
     }
 
     if (info[i].Relationship == RelationCache &&
+        info[i].Cache.Level >= 1 &&
+        info[i].Cache.Level <= 3 &&
         (info[i].Cache.Type == CacheData ||
          info[i].Cache.Type == CacheUnified))
     {
-      if (info[i].Cache.Level == 1)
-        l1CacheSize_ = info[i].Cache.Size;
-      if (info[i].Cache.Level == 2)
-        l2CacheSize_ = info[i].Cache.Size;
-      if (info[i].Cache.Level == 3)
-        l3CacheSize_ = info[i].Cache.Size;
+      auto level = info[i].Cache.Level;
+      cacheSizes_[level] = info[i].Cache.Size;
     }
-  }
-
-  // if the CPU has an L3 cache we assume the
-  // L3 cache is shared among all CPU cores
-  // and that the L2 cache is private
-  if (hasL3Cache())
-  {
-    l2Sharing_ = threadsPerCore_;
-    l3Sharing_ = cpuThreads_;
   }
 
 // Windows 7 (2009) or later
@@ -630,7 +626,7 @@ void CpuInfo::init()
     return;
 
   bytes = 0;
-  glpiex(RelationAll, 0, &bytes);
+  glpiex(RelationCache, 0, &bytes);
 
   if (!bytes)
     return;
@@ -638,17 +634,17 @@ void CpuInfo::init()
   vector<char> buffer(bytes);
   SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* cpu;
 
-  if (!glpiex(RelationAll, (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[0], &bytes))
+  if (!glpiex(RelationCache, (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[0], &bytes))
     return;
 
   for (size_t i = 0; i < bytes; i += cpu->Size)
   {
     cpu = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[i];
 
-    // L2 cache
     if (cpu->Relationship == RelationCache &&
         cpu->Cache.GroupMask.Group == 0 &&
-        cpu->Cache.Level == 2 &&
+        cpu->Cache.Level >= 1 &&
+        cpu->Cache.Level <= 3 &&
         (cpu->Cache.Type == CacheData ||
          cpu->Cache.Type == CacheUnified))
     {
@@ -658,37 +654,13 @@ void CpuInfo::init()
       // only have 1 or 2 bits set for each CPU cache (L1, L2 and
       // L3) even if more logical CPU cores share the cache
       auto mask = cpu->Cache.GroupMask.Mask;
-      l2Sharing_ = 0;
+      auto level = cpu->Cache.Level;
+      auto& cacheSharing = cacheSharing_[level];
 
       // Cache.GroupMask.Mask contains one bit set for
       // each logical CPU core sharing the cache
-      for (; mask > 0; l2Sharing_++)
+      for (; mask > 0; cacheSharing++)
         mask &= mask - 1;
-
-      break;
-    }
-
-    // L3 cache
-    if (cpu->Relationship == RelationCache &&
-        cpu->Cache.GroupMask.Group == 0 &&
-        cpu->Cache.Level == 3 &&
-        (cpu->Cache.Type == CacheData ||
-         cpu->Cache.Type == CacheUnified))
-    {
-      // @warning: GetLogicalProcessorInformationEx() reports
-      // incorrect data when Windows is run inside a virtual
-      // machine. Specifically the GROUP_AFFINITY.Mask will
-      // only have 1 or 2 bits set for each CPU cache (L1, L2 and
-      // L3) even if more logical CPU cores share the cache
-      auto mask = cpu->Cache.GroupMask.Mask;
-      l3Sharing_ = 0;
-
-      // Cache.GroupMask.Mask contains one bit set for
-      // each logical CPU core sharing the cache
-      for (; mask > 0; l3Sharing_++)
-        mask &= mask - 1;
-
-      break;
     }
   }
 
@@ -724,34 +696,16 @@ void CpuInfo::init()
     size_t level = getValue(cacheLevel);
     string type = getString(cacheType);
 
-    if (level == 1 &&
-        (type == "Data" ||
-         type == "Unified"))
-    {
-      string cacheSize = path + "/size";
-      l1CacheSize_ = getValue(cacheSize);
-    }
-
-    if (level == 2 &&
+    if (level >= 1 &&
+        level <= 3 &&
         (type == "Data" ||
          type == "Unified"))
     {
       string cacheSize = path + "/size";
       string sharedCpuList = path + "/shared_cpu_list";
       string sharedCpuMap = path + "/shared_cpu_map";
-      l2CacheSize_ = getValue(cacheSize);
-      l2Sharing_ = getThreads(sharedCpuList, sharedCpuMap);
-    }
-
-    if (level == 3 &&
-        (type == "Data" ||
-         type == "Unified"))
-    {
-      string cacheSize = path + "/size";
-      string sharedCpuList = path + "/shared_cpu_list";
-      string sharedCpuMap = path + "/shared_cpu_map";
-      l3CacheSize_ = getValue(cacheSize);
-      l3Sharing_ = getThreads(sharedCpuList, sharedCpuMap);
+      cacheSizes_[level] = getValue(cacheSize);
+      cacheSharing_[level] = getThreads(sharedCpuList, sharedCpuMap);
     }
   }
 }

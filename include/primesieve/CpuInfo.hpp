@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <string>
+#include <array>
 
 namespace primesieve {
 
@@ -25,6 +26,7 @@ public:
   bool hasL1Cache() const;
   bool hasL2Cache() const;
   bool hasL3Cache() const;
+  bool hasL1Sharing() const;
   bool hasL2Sharing() const;
   bool hasL3Sharing() const;
   bool hasThreadsPerCore() const;
@@ -35,6 +37,7 @@ public:
   std::size_t l1CacheSize() const;
   std::size_t l2CacheSize() const;
   std::size_t l3CacheSize() const;
+  std::size_t l1Sharing() const;
   std::size_t l2Sharing() const;
   std::size_t l3Sharing() const;
   std::size_t cpuCores() const;
@@ -45,12 +48,9 @@ private:
   void init();
   std::size_t cpuCores_;
   std::size_t cpuThreads_;
-  std::size_t l1CacheSize_;
-  std::size_t l2CacheSize_;
-  std::size_t l3CacheSize_;
-  std::size_t l2Sharing_;
-  std::size_t l3Sharing_;
   std::size_t threadsPerCore_;
+  std::array<std::size_t, 4> cacheSizes_;
+  std::array<std::size_t, 4> cacheSharing_;
   std::string cpuName_;
   std::string error_;
 };
