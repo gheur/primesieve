@@ -47,6 +47,7 @@ script:
   - if [ "$(./primesieve 1e10 -d1e8 -p4 | md5sum | cut -f1 -d' ')" != "c2b0818499f77aa35681db3826caf3f6" ]; then exit 1; fi
   - if [ "$(./primesieve 1e10 -d1e8 -p5 | md5sum | cut -f1 -d' ')" != "11b50e4f75899891a62465f6d68fb76e" ]; then exit 1; fi
   - if [ "$(./primesieve 1e10 -d1e8 -p6 | md5sum | cut -f1 -d' ')" != "5a0bc83fdef0bb116d60f356adfde52f" ]; then exit 1; fi
+  - ./primesieve --cpu-info
   - cd ..
   - rm -rf build
   # 3) Build primesieve GUI app
@@ -70,10 +71,6 @@ script:
   # 6) Test using valgrind
   - $CXX -Iinclude -O2 -std=c++11 -g src/*.cpp examples/cpp/nth_prime.cpp -o nth_prime -lpthread
   - valgrind --error-exitcode=1 ./nth_prime 500000000
-  # 7) Print CPU info
-  - cd build
-  - ./primesieve --cpu-info
-  # 8) Test using cppcheck
-  - cd ..
+  # 7) Test using cppcheck
   - rm -rf build
   - cppcheck . -q --error-exitcode=1 -iexamples/cpp/prev_prime.cpp -iexamples/cpp/primesieve_iterator.cpp -itest/next_prime1.cpp -itest/prev_prime1.cpp
