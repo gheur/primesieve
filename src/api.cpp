@@ -194,8 +194,7 @@ int get_sieve_size(uint64_t stop)
 
   // set sieve size = L2 cache size
   // only if L2 cache is private
-  if (cpuInfo.hasL2Cache() &&
-      cpuInfo.hasPrivateL2Cache() &&
+  if (cpuInfo.hasPrivateL2Cache() &&
       l2CacheSize > l1CacheSize)
   {
     // take Hyper-threading into consideration, set

@@ -502,9 +502,10 @@ bool CpuInfo::hasThreadsPerCore() const
 
 bool CpuInfo::hasPrivateL2Cache() const
 {
-  return hasL2Sharing() &&
+  return hasL2Cache() &&
+         hasL2Sharing() &&
          hasThreadsPerCore() &&
-         cacheSharing_[2] <= threadsPerCore_;
+         l2Sharing() <= threadsPerCore_;
 }
 
 bool CpuInfo::hasHyperThreading() const
@@ -618,7 +619,7 @@ void CpuInfo::init()
     return;
 
   bytes = 0;
-  glpiex(RelationAll, 0, &bytes);
+  glpiex(RelationCache, 0, &bytes);
 
   if (!bytes)
     return;
@@ -626,7 +627,7 @@ void CpuInfo::init()
   vector<char> buffer(bytes);
   SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* cpu;
 
-  if (!glpiex(RelationAll, (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[0], &bytes))
+  if (!glpiex(RelationCache, (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[0], &bytes))
     return;
 
   for (size_t i = 0; i < bytes; i += cpu->Size)
