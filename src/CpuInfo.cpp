@@ -32,6 +32,7 @@ using namespace std;
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#include <algorithm>
 
 namespace {
 
@@ -538,17 +539,18 @@ void CpuInfo::init()
 
   size = 0;
 
+  // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
   if (!sysctlbyname("hw.cacheconfig", NULL, &size, NULL, 0))
   {
     size_t n = size / sizeof(size);
-    vector<size_t> cacheConfig(n);
 
-    if (cacheConfig.size() > 1)
+    if (n > 1)
     {
-      // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
+      vector<size_t> cacheConfig(n);
       sysctlbyname("hw.cacheconfig" , &cacheConfig[0], &size, NULL, 0);
+      n = min(n, cacheSharing_.size());
 
-      for (size_t i = 1; i < cacheConfig.size(); i++)
+      for (size_t i = 1; i < n; i++)
         cacheSharing_[i] = cacheConfig[i];
     }
   }
