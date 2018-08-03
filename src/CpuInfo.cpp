@@ -176,6 +176,7 @@ string getCpuName()
 
 #else // Linux
 
+#include <cctype>
 #include <fstream>
 #include <regex>
 #include <sstream>
@@ -209,11 +210,15 @@ string getString(const string& filename)
 
   if (file)
   {
-    // Remove all space characters
-    // https://stackoverflow.com/a/3177560/363778
-    stringstream trimmer;
-    trimmer << file.rdbuf();
-    trimmer >> str;
+    stringstream ss;
+    ss << file.rdbuf();
+    str = ss.str();
+
+    // remove all space characters
+    str.erase(remove_if(str.begin(), str.end(),
+      [](unsigned char c) {
+        return isspace(c);
+    }));
   }
 
   return str;
