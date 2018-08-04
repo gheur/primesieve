@@ -543,11 +543,11 @@ size_t getValue(const string& filename)
     // 'M' = megabytes
     // 'G' = gigabytes
     if (str.back() == 'K')
-      val *= 1024;
+      val *= 1 << 10;
     if (str.back() == 'M')
-      val *= 1024 * 1024;
+      val *= 1 << 20;
     if (str.back() == 'G')
-      val *= 1024 * 1024 * 1024;
+      val *= 1 << 30;
   }
 
   return val;
