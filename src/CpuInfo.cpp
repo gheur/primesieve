@@ -388,110 +388,79 @@ void CpuInfo::init()
   cpuName_ = getCpuName();
 #endif
 
-  typedef BOOL (WINAPI *LPFN_GLPI)(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION, PDWORD);
-  LPFN_GLPI glpi = (LPFN_GLPI) GetProcAddress(GetModuleHandle(TEXT("kernel32")), "GetLogicalProcessorInformation");
+  typedef BOOL (WINAPI *LPFN_GLPIEX)(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD);
 
-  if (!glpi)
-    return;
-
-  DWORD bytes = 0;
-  glpi(0, &bytes);
-
-  if (!bytes)
-    return;
-
-  size_t size = bytes / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-  vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> info(size);
-
-  if (!glpi(&info[0], &bytes))
-    return;
-
-  for (size_t i = 0; i < size; i++)
-  {
-    if (info[i].Relationship == RelationProcessorCore)
-    {
-      cpuCores_++;
-      threadsPerCore_ = 0;
-      auto mask = info[i].ProcessorMask;
-
-      // ProcessorMask contains one bit set for
-      // each logical CPU core related to the
-      // current physical CPU core
-      while (mask > 0)
-      {
-        cpuThreads_++;
-        threadsPerCore_++;
-        mask &= mask - 1;
-      }
-    }
-
-    if (info[i].Relationship == RelationCache &&
-        info[i].Cache.Level >= 1 &&
-        info[i].Cache.Level <= 3 &&
-        (info[i].Cache.Type == CacheData ||
-         info[i].Cache.Type == CacheUnified))
-    {
-      auto level = info[i].Cache.Level;
-      cacheSizes_[level] = info[i].Cache.Size;
-    }
-  }
+  LPFN_GLPIEX glpiex = (LPFN_GLPIEX) GetProcAddress(
+      GetModuleHandle(TEXT("kernel32")), "GetLogicalProcessorInformationEx");
 
   // GetLogicalProcessorInformationEx() is supported on Windows 7
   // (2009) or later. So we first check if the user's Windows
   // version supports GetLogicalProcessorInformationEx() before
   // using it. This way primesieve will also run on old Windows
-  // versions like Windows XP.
-
-  typedef BOOL (WINAPI *LPFN_GLPIEX)(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD);
-  LPFN_GLPIEX glpiex = (LPFN_GLPIEX) GetProcAddress(
-      GetModuleHandle(TEXT("kernel32")), "GetLogicalProcessorInformationEx");
-
+  // versions (though without CPU information).
   if (!glpiex)
     return;
 
-  bytes = 0;
-  glpiex(RelationCache, 0, &bytes);
+  DWORD bytes = 0;
+  glpiex(RelationAll, 0, &bytes);
 
   if (!bytes)
     return;
 
   vector<char> buffer(bytes);
-  SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* cpu;
+  SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* info;
 
-  if (!glpiex(RelationCache, (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[0], &bytes))
+  if (!glpiex(RelationAll, (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[0], &bytes))
     return;
 
-  for (size_t i = 0; i < bytes; i += cpu->Size)
+  for (size_t i = 0; i < bytes; i += info->Size)
   {
-    cpu = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[i];
+    info = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) &buffer[i];
 
-    if (cpu->Relationship == RelationCache &&
-        cpu->Cache.GroupMask.Group == 0 &&
-        cpu->Cache.Level >= 1 &&
-        cpu->Cache.Level <= 3 &&
-        (cpu->Cache.Type == CacheData ||
-         cpu->Cache.Type == CacheUnified))
+    if (info->Relationship == RelationCache &&
+        info->Cache.GroupMask.Group == 0 &&
+        info->Cache.Level >= 1 &&
+        info->Cache.Level <= 3 &&
+        (info->Cache.Type == CacheData ||
+         info->Cache.Type == CacheUnified))
     {
+      auto level = info->Cache.Level;
+      cacheSizes_[level] = info->Cache.CacheSize;
+
       // @warning: GetLogicalProcessorInformationEx() reports
       // incorrect data when Windows is run inside a virtual
       // machine. Specifically the GROUP_AFFINITY.Mask will
       // only have 1 or 2 bits set for each CPU cache (L1, L2 and
       // L3) even if more logical CPU cores share the cache
-      auto mask = cpu->Cache.GroupMask.Mask;
-      auto level = cpu->Cache.Level;
-      auto& cacheSharing = cacheSharing_[level];
+      auto mask = info->Cache.GroupMask.Mask;
+      cacheSharing_[level] = 0;
 
       // Cache.GroupMask.Mask contains one bit set for
       // each logical CPU core sharing the cache
-      for (cacheSharing = 0; mask > 0; cacheSharing++)
-        mask &= mask - 1;
+      for (; mask > 0; mask &= mask - 1)
+        cacheSharing_[level]++;
+    }
+
+    if (info->Relationship == RelationProcessorCore)
+    {
+      cpuCores_++;
+      threadsPerCore_ = 0;
+
+      for (size_t j = 0; j < info->Processor.GroupCount; j++)
+      {
+        auto mask = info->Processor.GroupMask[j].Mask;
+        for (; mask > 0; mask &= mask - 1)
+          threadsPerCore_++;
+      }
+
+      cpuThreads_ += threadsPerCore_;
     }
   }
 }
 
 } // namespace
 
-#else // Linux (and all unkown OSes)
+#else // Linux (and all unknown OSes)
 
 #include <cctype>
 #include <fstream>
