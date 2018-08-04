@@ -436,8 +436,11 @@ void CpuInfo::init()
     }
   }
 
-// Windows 7 (2009) or later
-#if _WIN32_WINNT >= 0x0601
+  // GetLogicalProcessorInformationEx() is supported on Windows 7
+  // (2009) or later. So we first check if the user's Windows
+  // version supports GetLogicalProcessorInformationEx() before
+  // using it. This way primesieve will also run on old Windows
+  // versions like Windows XP.
 
   typedef BOOL (WINAPI *LPFN_GLPIEX)(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD);
   LPFN_GLPIEX glpiex = (LPFN_GLPIEX) GetProcAddress(
@@ -484,7 +487,6 @@ void CpuInfo::init()
         mask &= mask - 1;
     }
   }
-#endif
 }
 
 } // namespace
