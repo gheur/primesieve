@@ -478,7 +478,6 @@ void CpuInfo::init()
         mask &= mask - 1;
     }
   }
-
 #endif
 }
 
