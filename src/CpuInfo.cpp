@@ -280,6 +280,12 @@ void CpuInfo::init()
 
 namespace {
 
+/// CPUID is not portable across all x86 CPU vendors and there
+/// are many pitfalls. For this reason we prefer to get CPU
+/// information from the operating system instead of CPUID.
+/// We only use CPUID for getting the CPU name on Windows x86
+/// because there is no other way to get that information.
+///
 void cpuId(int cpuInfo[4], int eax)
 {
 #if defined(MSVC_CPUID)
