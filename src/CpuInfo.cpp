@@ -138,12 +138,6 @@ void trimString(string& str)
   reverse(str.begin(), str.end());
 }
 
-} // namespace
-
-#endif
-
-namespace {
-
 /// Get the CPU name using CPUID.
 /// Example: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
 /// https://en.wikipedia.org/wiki/CPUID#EAX=80000002h,80000003h,80000004h:_Processor_Brand_String
@@ -151,9 +145,6 @@ namespace {
 string getCpuName()
 {
   string cpuName;
-
-#if defined(IS_X86)
-
   vector<int> vect;
   int cpuInfo[4] = { 0, 0, 0, 0 };
 
@@ -176,12 +167,12 @@ string getCpuName()
     trimString(cpuName);
   }
 
-#endif
-
   return cpuName;
 }
 
 } // namespace
+
+#endif
 
 #else // Linux
 
@@ -560,7 +551,9 @@ void CpuInfo::init()
 
 void CpuInfo::init()
 {
+#if defined(IS_X86)
   cpuName_ = getCpuName();
+#endif
 
   typedef BOOL (WINAPI *LPFN_GLPI)(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION, PDWORD);
   LPFN_GLPI glpi = (LPFN_GLPI) GetProcAddress(GetModuleHandle(TEXT("kernel32")), "GetLogicalProcessorInformation");
