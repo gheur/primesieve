@@ -197,7 +197,7 @@ int get_sieve_size(uint64_t stop)
   if (cpuInfo.hasPrivateL2Cache() &&
       l2CacheSize > l1CacheSize)
   {
-    // take Hyper-threading into consideration, set
+    // if the CPU supports Hyper-Threading set
     // sieve size = L2 cache size / threads per CPU core
     if (cpuInfo.hasHyperThreading())
     {
@@ -211,7 +211,7 @@ int get_sieve_size(uint64_t stop)
     }
 
     // use larger sieve size to ensure
-    // EratBig::lists_ fits into L1 cache
+    // EratBig::fitsIntoCache(stop, size) == true
     size_t size = l2CacheSize;
     size = inBetween(32, size, 4096);
     size = floorPow2(size);
@@ -223,7 +223,7 @@ int get_sieve_size(uint64_t stop)
       l1CacheSize = 32;
 
     // if the CPU does not have an L2 cache or if the
-    // cache is shared between all CPU cores we
+    // L2 cache is shared between all CPU cores we
     // set the sieve size to the CPU's L1 cache size
     size_t size = l1CacheSize;
     size = inBetween(8, size, 4096);
