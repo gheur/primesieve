@@ -12,6 +12,7 @@
 #include <primesieve/CpuInfo.hpp>
 #include <primesieve/pmath.hpp>
 
+#include <stdint.h>
 #include <cstddef>
 #include <exception>
 #include <string>
@@ -126,14 +127,18 @@ bool CpuInfo::hasL1Cache() const
 
 bool CpuInfo::hasL2Cache() const
 {
-  return cacheSizes_[2] >= (1 << 12) &&
-         cacheSizes_[2] <= (1ull << 40);
+  uint64_t cacheSize = cacheSizes_[2];
+
+  return cacheSize >= (1 << 12) &&
+         cacheSize <= (1ull << 40);
 }
 
 bool CpuInfo::hasL3Cache() const
 {
-  return cacheSizes_[3] >= (1 << 12) &&
-         cacheSizes_[3] <= (1ull << 40);
+  uint64_t cacheSize = cacheSizes_[3];
+
+  return cacheSize >= (1 << 12) &&
+         cacheSize <= (1ull << 40);
 }
 
 bool CpuInfo::hasL1Sharing() const
