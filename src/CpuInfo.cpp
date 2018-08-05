@@ -660,25 +660,27 @@ void CpuInfo::init()
       hasThreadsPerCore())
     cpuCores_ = cpuThreads_ / threadsPerCore_;
 
-  for (int i = 0; i <= 3; i++)
+  for (size_t i = 0; i <= 3; i++)
   {
     string path = "/sys/devices/system/cpu/cpu0/cache/index" + to_string(i);
     string cacheLevel = path + "/level";
-    string cacheType = path + "/type";
-
     size_t level = getValue(cacheLevel);
-    string type = getString(cacheType);
 
     if (level >= 1 &&
-        level <= 3 &&
-        (type == "Data" ||
-         type == "Unified"))
+        level <= 3)
     {
-      string cacheSize = path + "/size";
-      string sharedCpuList = path + "/shared_cpu_list";
-      string sharedCpuMap = path + "/shared_cpu_map";
-      cacheSizes_[level] = getValue(cacheSize);
-      cacheSharing_[level] = getThreads(sharedCpuList, sharedCpuMap);
+      string type = path + "/type";
+      string cacheType = getString(type);
+
+      if (cacheType == "Data" ||
+          cacheType == "Unified")
+      {
+        string cacheSize = path + "/size";
+        string sharedCpuList = path + "/shared_cpu_list";
+        string sharedCpuMap = path + "/shared_cpu_map";
+        cacheSizes_[level] = getValue(cacheSize);
+        cacheSharing_[level] = getThreads(sharedCpuList, sharedCpuMap);
+      }
     }
   }
 }
