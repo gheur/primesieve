@@ -193,21 +193,19 @@ bool CpuInfo::hasHyperThreading() const
 
 namespace {
 
-vector<size_t> getSysctlVector(const string& name)
+template <typename T>
+vector<T> getSysctl(const string& name)
 {
-  vector<size_t> res;
+  vector<T> res;
   size_t bytes = 0;
 
   if (!sysctlbyname(name.data(), 0, &bytes, 0, 0))
   {
-    if (bytes >= sizeof(bytes))
-    {
-      using primesieve::ceilDiv;
-      size_t size = ceilDiv(bytes, sizeof(bytes));
-      vector<size_t> vect(size, 0);
-      if (!sysctlbyname(name.data(), vect.data(), &bytes, 0, 0))
-        res = vect;
-    }
+    using primesieve::ceilDiv;
+    size_t size = ceilDiv(bytes, sizeof(T));
+    vector<T> vect(size, 0);
+    if (!sysctlbyname(name.data(), vect.data(), &bytes, 0, 0))
+      res = vect;
   }
 
   return res;
@@ -219,30 +217,30 @@ namespace primesieve {
 
 void CpuInfo::init()
 {
-  char buffer[256];
-  size_t size = sizeof(buffer);
-  sysctlbyname("machdep.cpu.brand_string", &buffer, &size, 0, 0);
-  cpuName_ = buffer;
+  auto cpuName = getSysctl<char>("machdep.cpu.brand_string");
+  if (!cpuName.empty())
+    cpuName_ = cpuName.data();
+
+  auto cpuCores = getSysctl<size_t>("hw.physicalcpu");
+  if (!cpuCores.empty())
+    cpuCores_ = cpuCores[0];
+
+  auto cpuThreads = getSysctl<size_t>("hw.logicalcpu");
+  if (!cpuThreads.empty())
+    cpuThreads_ = cpuThreads[0];
+
+  if (hasCpuCores() && hasCpuThreads())
+    threadsPerCore_ = cpuThreads_ / cpuCores_;
 
   // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
-  auto vect = getSysctlVector("hw.cachesize");
-  size = min(vect.size(), cacheSizes_.size());
-  for (size_t i = 1; i < size; i++)
-    cacheSizes_[i] = vect[i];
+  auto cacheSizes = getSysctl<size_t>("hw.cachesize");
+  for (size_t i = 1; i < min(cacheSizes.size(), cacheSizes_.size()); i++)
+    cacheSizes_[i] = cacheSizes[i];
 
   // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
-  vect = getSysctlVector("hw.cacheconfig");
-  size = min(vect.size(), cacheSharing_.size());
-  for (size_t i = 1; i < size; i++)
-    cacheSharing_[i] = vect[i];
-
-  size = sizeof(cpuCores_);
-  sysctlbyname("hw.physicalcpu", &cpuCores_, &size, 0, 0);
-  size_t cpuCores = max<size_t>(1, cpuCores_);
-
-  size = sizeof(cpuThreads_);
-  sysctlbyname("hw.logicalcpu", &cpuThreads_, &size, 0, 0);
-  threadsPerCore_ = cpuThreads_ / cpuCores;
+  auto cacheConfig = getSysctl<size_t>("hw.cacheconfig");
+  for (size_t i = 1; i < min(cacheConfig.size(), cacheSharing_.size()); i++)
+    cacheSharing_[i] = cacheConfig[i];
 }
 
 } // namespace
