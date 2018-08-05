@@ -1,3 +1,19 @@
+Changes in version 7.1, 05/08/2018
+==================================
+
+This is a minor new release, the API and ABI (Application binary
+interface) are backwards compatible.
+
+If your CPU supports Hyper-Threading primesieve will now choose a
+sieve size that is smaller than your CPU's L2 cache size. This
+reduces the number of L2 cache misses as the L2 cache is usually
+shared by 2 or more hyper threads.
+
+* --cpu-info: New command-line option, prints CPU information. 
+* CpuInfo.cpp: Detect Hyper-Threading and cache sharing.
+* api.cpp: get_sieve_size() checks if CPU supports Hyper-Threading.
+* EratBig.cpp: Check if lists array fits into L1 cache.
+
 Changes in version 7.0, 25/04/2018
 ==================================
 
