@@ -52,10 +52,31 @@ int main()
     return 1;
   }
 
+  if (!cpuInfo.hasL3Cache() &&
+      cpuInfo.l3CacheSize() > 0)
+  {
+    cerr << "Invalid L3 cache size: " << cpuInfo.l3CacheSize() << endl;
+    return 1;
+  }
+
+  if (!cpuInfo.hasL1Sharing() &&
+      cpuInfo.l1Sharing() > 0)
+  {
+    cerr << "Invalid L1 cache sharing: " << cpuInfo.l1Sharing() << endl;
+    return 1;
+  }  
+
   if (!cpuInfo.hasL2Sharing() &&
       cpuInfo.l2Sharing() > 0)
   {
     cerr << "Invalid L2 cache sharing: " << cpuInfo.l2Sharing() << endl;
+    return 1;
+  }
+
+  if (!cpuInfo.hasL3Sharing() &&
+      cpuInfo.l3Sharing() > 0)
+  {
+    cerr << "Invalid L3 cache sharing: " << cpuInfo.l3Sharing() << endl;
     return 1;
   }
 
@@ -66,8 +87,9 @@ int main()
     return 1;
   }
 
-  cout << "L1 cache size: " << cpuInfo.l1CacheSize() / 1024 << " KB" << endl;
-  cout << "L2 cache size: " << cpuInfo.l2CacheSize() / 1024 << " KB" << endl;
+  cout << "L1 cache size: " << (cpuInfo.l1CacheSize() >> 10) << " KB" << endl;
+  cout << "L2 cache size: " << (cpuInfo.l2CacheSize() >> 10) << " KB" << endl;
+  cout << "L3 cache size: " << (cpuInfo.l3CacheSize() >> 10) << " KB" << endl;
 
   if (cpuInfo.hasL2Cache())
   {
