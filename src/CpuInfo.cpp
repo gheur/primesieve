@@ -193,14 +193,24 @@ bool CpuInfo::hasHyperThreading() const
 
 namespace {
 
-string getCpuName()
+vector<size_t> getSysctlVector(const string& name)
 {
-  char buffer[256];
-  size_t size = sizeof(buffer);
-  sysctlbyname("machdep.cpu.brand_string", &buffer, &size, NULL, 0);
-  string cpuName = buffer;
+  vector<size_t> res;
+  size_t bytes = 0;
 
-  return cpuName;
+  if (!sysctlbyname(name.data(), 0, &bytes, 0, 0))
+  {
+    if (bytes >= sizeof(bytes))
+    {
+      using primesieve::ceilDiv;
+      size_t size = ceilDiv(bytes, sizeof(bytes));
+      vector<size_t> vect(size, 0);
+      if (!sysctlbyname(name.data(), vect.data(), &bytes, 0, 0))
+        res = vect;
+    }
+  }
+
+  return res;
 }
 
 } // namespace
@@ -209,41 +219,30 @@ namespace primesieve {
 
 void CpuInfo::init()
 {
-  cpuName_ = getCpuName();
+  char buffer[256];
+  size_t size = sizeof(buffer);
+  sysctlbyname("machdep.cpu.brand_string", &buffer, &size, 0, 0);
+  cpuName_ = buffer;
 
-  size_t size1 = sizeof(size_t);
-  size_t size2 = sizeof(size_t);
-  size_t size3 = sizeof(size_t);
+  // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
+  auto vect = getSysctlVector("hw.cachesize");
+  size = min(vect.size(), cacheSizes_.size());
+  for (size_t i = 1; i < size; i++)
+    cacheSizes_[i] = vect[i];
 
-  sysctlbyname("hw.l1dcachesize", &cacheSizes_[1], &size1, NULL, 0);
-  sysctlbyname("hw.l2cachesize" , &cacheSizes_[2], &size2, NULL, 0);
-  sysctlbyname("hw.l3cachesize" , &cacheSizes_[3], &size3, NULL, 0);
+  // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
+  vect = getSysctlVector("hw.cacheconfig");
+  size = min(vect.size(), cacheSharing_.size());
+  for (size_t i = 1; i < size; i++)
+    cacheSharing_[i] = vect[i];
 
-  size_t size = sizeof(cpuCores_);
-  sysctlbyname("hw.physicalcpu", &cpuCores_, &size, NULL, 0);
+  size = sizeof(cpuCores_);
+  sysctlbyname("hw.physicalcpu", &cpuCores_, &size, 0, 0);
   size_t cpuCores = max<size_t>(1, cpuCores_);
 
   size = sizeof(cpuThreads_);
-  sysctlbyname("hw.logicalcpu", &cpuThreads_, &size, NULL, 0);
+  sysctlbyname("hw.logicalcpu", &cpuThreads_, &size, 0, 0);
   threadsPerCore_ = cpuThreads_ / cpuCores;
-
-  size = 0;
-
-  // https://developer.apple.com/library/content/releasenotes/Performance/RN-AffinityAPI/index.html
-  if (!sysctlbyname("hw.cacheconfig", NULL, &size, NULL, 0))
-  {
-    size_t n = size / sizeof(size);
-
-    if (n > 1)
-    {
-      vector<size_t> cacheConfig(n);
-      sysctlbyname("hw.cacheconfig" , &cacheConfig[0], &size, NULL, 0);
-      n = min(n, cacheSharing_.size());
-
-      for (size_t i = 1; i < n; i++)
-        cacheSharing_[i] = cacheConfig[i];
-    }
-  }
 }
 
 } // namespace
