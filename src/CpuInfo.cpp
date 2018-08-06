@@ -487,6 +487,14 @@ void trimString(string& str)
   reverse(str.begin(), str.end());
 }
 
+void removeAllSpaces(string& str)
+{
+  str.erase(remove_if(str.begin(), str.end(),
+    [](unsigned char c) {
+      return isspace(c);
+  }), str.end());
+}
+
 string getString(const string& filename)
 {
   ifstream file(filename);
@@ -497,12 +505,7 @@ string getString(const string& filename)
     stringstream ss;
     ss << file.rdbuf();
     str = ss.str();
-
-    // remove all space characters
-    str.erase(remove_if(str.begin(), str.end(),
-      [](unsigned char c) {
-        return isspace(c);
-    }));
+    removeAllSpaces(str);
   }
 
   return str;
