@@ -466,7 +466,7 @@ void CpuInfo::init()
 
 #include <cctype>
 #include <fstream>
-#include <regex>
+#include <set>
 #include <sstream>
 
 namespace {
@@ -495,6 +495,22 @@ void removeAllSpaces(string& str)
   }), str.end());
 }
 
+vector<string> split(const string& str,
+                     char delimiter)
+{
+   vector<string> tokens;
+   string token;
+   istringstream tokenStream(str);
+
+   while (getline(tokenStream, token, delimiter))
+      tokens.push_back(token);
+
+   return tokens;
+}
+
+/// Returns the content of a file as a string
+/// with all whitespaces removed.
+///
 string getString(const string& filename)
 {
   ifstream file(filename);
@@ -535,18 +551,38 @@ size_t getValue(const string& filename)
   return val;
 }
 
-vector<string> split(const string& s, char delimiter)
+/// Converts /proc/cpuinfo line into CPU name.
+/// Returns an empty string if line does
+/// not contain the CPU name.
+///
+string getCpuName(const string& line)
 {
-   vector<string> tokens;
-   string token;
-   istringstream tokenStream(s);
+  // Examples of CPU names:
+  // model name : Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+  // Processor  : ARMv7 Processor rev 5 (v7l)
+  // cpu        : POWER9 (raw), altivec supported
+  set<string> cpuLabels
+  {
+    "model name",
+    "Processor",
+    "cpu"
+  };
 
-   while (getline(tokenStream, token, delimiter))
-      tokens.push_back(token);
+  size_t pos = line.find_first_of(':');
+  string cpuName;
 
-   return tokens;
+  if (pos != string::npos)
+  {
+    string label = line.substr(0, pos);
+    trimString(label);
+    if (cpuLabels.find(label) != cpuLabels.end())
+      cpuName = line.substr(pos + 1);
+  }
+
+  return cpuName;
 }
 
+/// Find the CPU name inside /proc/cpuinfo
 string getCpuName()
 {
   ifstream file("/proc/cpuinfo");
@@ -554,29 +590,19 @@ string getCpuName()
 
   if (file)
   {
-    // Examples of CPU names:
-    // model name : Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
-    // Processor  : ARMv7 Processor rev 5 (v7l)
-    // cpu        : POWER9 (raw), altivec supported
-    //
-    regex reg("^(model\\sname|Processor|cpu)\\s+:");
-    smatch match;
     string line;
     size_t i = 0;
 
     while (getline(file, line))
     {
-      if (regex_search(line, match, reg))
-      {
-        size_t pos = match.str().size();
-        string cpuName = line.substr(pos);
-        trimString(cpuName);
-        if (cpuName.find_first_not_of("0123456789") != string::npos)
-          return cpuName;
-      }
+      string cpuName = getCpuName(line);
+      trimString(cpuName);
+      size_t pos = cpuName.find_first_not_of("0123456789");
 
+      if (pos != string::npos)
+        return cpuName;
       if (++i > 10)
-        break;
+        return notFound;
     }
   }
 
@@ -636,7 +662,8 @@ size_t parseThreadMap(const string& filename)
   return threads;
 }
 
-size_t getThreads(const string& threadList, const string& threadMap)
+size_t getThreads(const string& threadList,
+                  const string& threadMap)
 {
   size_t threads = parseThreadList(threadList);
 
