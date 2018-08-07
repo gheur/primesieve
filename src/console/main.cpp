@@ -51,6 +51,15 @@ void sieve(CmdOptions& opt)
   ParallelSieve ps;
   auto& numbers = opt.numbers;
 
+  if (numbers.size() < 2)
+    numbers.push_front(0);
+
+  uint64_t start = numbers[0];
+  uint64_t stop = numbers[1];
+
+  ps.setStart(start);
+  ps.setStop(stop);
+
   if (opt.flags)
     ps.setFlags(opt.flags);
   if (opt.sieveSize)
@@ -59,16 +68,6 @@ void sieve(CmdOptions& opt)
     ps.setNumThreads(opt.threads);
   if (ps.isPrint())
     ps.setNumThreads(1);
-  if (numbers.size() < 2)
-    numbers.push_front(0);
-
-  uint64_t start = numbers[0];
-  uint64_t stop = numbers[1];
-  int sieveSize = get_sieve_size(stop);
-
-  ps.setStart(start);
-  ps.setStop(stop);
-  ps.setSieveSize(sieveSize);
 
   if (!opt.quiet)
   {
@@ -88,12 +87,6 @@ void nthPrime(CmdOptions& opt)
   ParallelSieve ps;
   auto& numbers = opt.numbers;
 
-  if (opt.flags)
-    ps.setFlags(opt.flags);
-  if (opt.sieveSize)
-    ps.setSieveSize(opt.sieveSize);
-  if (opt.threads)
-    ps.setNumThreads(opt.threads);
   if (numbers.size() < 2)
     numbers.push_back(0);
 
@@ -101,11 +94,16 @@ void nthPrime(CmdOptions& opt)
   uint64_t start = numbers[1];
   uint64_t stop = start + abs(n * 20);
   uint64_t nthPrime = 0;
-  int sieveSize = get_sieve_size(stop);
 
   ps.setStart(start);
   ps.setStop(stop);
-  ps.setSieveSize(sieveSize);
+
+  if (opt.flags)
+    ps.setFlags(opt.flags);
+  if (opt.sieveSize)
+    ps.setSieveSize(opt.sieveSize);
+  if (opt.threads)
+    ps.setNumThreads(opt.threads);
 
   if (!opt.quiet)
   {

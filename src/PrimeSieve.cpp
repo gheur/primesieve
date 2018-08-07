@@ -11,8 +11,9 @@
 ///
 
 #include <primesieve/PrimeSieve.hpp>
-#include <primesieve/pmath.hpp>
 #include <primesieve/PrintPrimes.hpp>
+#include <primesieve/pmath.hpp>
+#include <primesieve/types.hpp>
 
 #include <stdint.h>
 #include <algorithm>
@@ -52,7 +53,7 @@ namespace primesieve {
 PrimeSieve::PrimeSieve() :
   start_(0),
   stop_(0),
-  sieveSize_(32),
+  sieveSize_(0),
   flags_(COUNT_PRIMES),
   parent_(nullptr)
 {
@@ -132,7 +133,10 @@ counts_t& PrimeSieve::getCounts()
 
 int PrimeSieve::getSieveSize() const
 {
-  return sieveSize_;
+  if (sieveSize_ > 0)
+    return sieveSize_;
+  else
+    return get_sieve_size(stop_);
 }
 
 double PrimeSieve::getSeconds() const
@@ -155,16 +159,6 @@ void PrimeSieve::addFlags(int flags)
   flags_ |= flags;
 }
 
-/// Set the size of the sieve array in kilobytes.
-/// The best sieving performance is usually achieved if the
-/// sieve size is set to the CPU's L1 or L2 cache size.
-///
-void PrimeSieve::setSieveSize(int sieveSize)
-{
-  sieveSize_ = inBetween(8, sieveSize, 4096);
-  sieveSize_ = floorPow2(sieveSize_);
-}
-
 /// Set a start number (lower bound) for sieving
 void PrimeSieve::setStart(uint64_t start)
 {
@@ -175,6 +169,19 @@ void PrimeSieve::setStart(uint64_t start)
 void PrimeSieve::setStop(uint64_t stop)
 {
   stop_ = stop;
+}
+
+/// Set the size of the sieve array in kilobytes.
+/// The best sieving performance is usually achieved if the
+/// sieve size is set to the CPU's L1 or L2 cache size.
+///
+void PrimeSieve::setSieveSize(int sieveSize)
+{
+  if (sieveSize <= 0)
+    return;
+
+  sieveSize_ = inBetween(8, sieveSize, 4096);
+  sieveSize_ = floorPow2(sieveSize_);
 }
 
 /// Print status in percent to stdout.
