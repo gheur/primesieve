@@ -35,7 +35,6 @@ namespace primesieve {
 uint64_t nth_prime(int64_t n, uint64_t start)
 {
   ParallelSieve ps;
-  auto stop = start + n;
   ps.setSieveSize(sieve_size);
   ps.setNumThreads(get_num_threads());
   return ps.nthPrime(n, start);

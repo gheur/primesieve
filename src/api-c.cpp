@@ -42,12 +42,12 @@ void* store_primes(uint64_t start, uint64_t stop, size_t* size)
   }
   catch (exception&)
   {
-    errno = EDOM;
     if (size)
       *size = 0;
-  }
 
-  return NULL;
+    errno = EDOM;
+    return NULL;
+  }
 }
 
 template <typename T>
@@ -63,9 +63,8 @@ void* store_n_primes(uint64_t n, uint64_t start)
   catch (exception&)
   {
     errno = EDOM;
+    return NULL;
   }
-
-  return NULL;
 }
 
 } // namespace
@@ -89,9 +88,11 @@ void* primesieve_generate_primes(uint64_t start, uint64_t stop, size_t* size, in
     case INT64_PRIMES:     return store_primes<int64_t>(start, stop, size);
     case UINT64_PRIMES:    return store_primes<uint64_t>(start, stop, size);
   }
-  errno = EDOM;
+
   if (size)
     *size = 0;
+
+  errno = EDOM;
   return NULL;
 }
 
@@ -114,6 +115,7 @@ void* primesieve_generate_n_primes(uint64_t n, uint64_t start, int type)
     case INT64_PRIMES:     return store_n_primes<int64_t>(n, start);
     case UINT64_PRIMES:    return store_n_primes<uint64_t>(n, start);
   }
+
   errno = EDOM;
   return NULL;
 }
@@ -132,8 +134,8 @@ uint64_t primesieve_nth_prime(int64_t n, uint64_t start)
   catch (exception&)
   {
     errno = EDOM;
+    return PRIMESIEVE_ERROR;
   }
-  return PRIMESIEVE_ERROR;
 }
 
 uint64_t primesieve_count_primes(uint64_t start, uint64_t stop)
@@ -145,8 +147,8 @@ uint64_t primesieve_count_primes(uint64_t start, uint64_t stop)
   catch (exception&)
   {
     errno = EDOM;
+    return PRIMESIEVE_ERROR;
   }
-  return PRIMESIEVE_ERROR;
 }
 
 uint64_t primesieve_count_twins(uint64_t start, uint64_t stop)
@@ -158,8 +160,8 @@ uint64_t primesieve_count_twins(uint64_t start, uint64_t stop)
   catch (exception&)
   {
     errno = EDOM;
+    return PRIMESIEVE_ERROR;
   }
-  return PRIMESIEVE_ERROR;
 }
 
 uint64_t primesieve_count_triplets(uint64_t start, uint64_t stop)
@@ -171,8 +173,8 @@ uint64_t primesieve_count_triplets(uint64_t start, uint64_t stop)
   catch (exception&)
   {
     errno = EDOM;
+    return PRIMESIEVE_ERROR;
   }
-  return PRIMESIEVE_ERROR;
 }
 
 uint64_t primesieve_count_quadruplets(uint64_t start, uint64_t stop)
@@ -184,8 +186,8 @@ uint64_t primesieve_count_quadruplets(uint64_t start, uint64_t stop)
   catch (exception&)
   {
     errno = EDOM;
+    return PRIMESIEVE_ERROR;
   }
-  return PRIMESIEVE_ERROR;
 }
 
 uint64_t primesieve_count_quintuplets(uint64_t start, uint64_t stop)
@@ -197,8 +199,8 @@ uint64_t primesieve_count_quintuplets(uint64_t start, uint64_t stop)
   catch (exception&)
   {
     errno = EDOM;
+    return PRIMESIEVE_ERROR;
   }
-  return PRIMESIEVE_ERROR;
 }
 
 uint64_t primesieve_count_sextuplets(uint64_t start, uint64_t stop)
@@ -210,8 +212,8 @@ uint64_t primesieve_count_sextuplets(uint64_t start, uint64_t stop)
   catch (exception&)
   {
     errno = EDOM;
+    return PRIMESIEVE_ERROR;
   }
-  return PRIMESIEVE_ERROR;
 }
 
 void primesieve_print_primes(uint64_t start, uint64_t stop)
