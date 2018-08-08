@@ -10,7 +10,6 @@
 ///
 
 #include <primesieve/CpuInfo.hpp>
-#include <primesieve/pmath.hpp>
 
 #include <stdint.h>
 #include <cstddef>
@@ -192,9 +191,10 @@ bool CpuInfo::hasHyperThreading() const
 
 #if defined(APPLE_SYSCTL)
 
+#include <primesieve/pmath.hpp>
+#include <algorithm>
 #include <sys/types.h>
 #include <sys/sysctl.h>
-#include <algorithm>
 
 namespace {
 
@@ -464,6 +464,7 @@ void CpuInfo::init()
 
 #else // Linux (and all unknown OSes)
 
+#include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <set>
