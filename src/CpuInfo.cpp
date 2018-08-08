@@ -582,6 +582,16 @@ string getCpuName(const string& line)
   return cpuName;
 }
 
+bool isValid(const string& cpuName)
+{
+  if (cpuName.empty())
+    return false;
+  if (cpuName.find_first_not_of("0123456789") == string::npos)
+    return false;
+
+  return true;
+}
+
 /// Find the CPU name inside /proc/cpuinfo
 string getCpuName()
 {
@@ -597,9 +607,8 @@ string getCpuName()
     {
       string cpuName = getCpuName(line);
       trimString(cpuName);
-      size_t pos = cpuName.find_first_not_of("0123456789");
 
-      if (pos != string::npos)
+      if (isValid(cpuName))
         return cpuName;
       if (++i > 10)
         return notFound;
