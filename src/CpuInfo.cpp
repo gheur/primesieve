@@ -359,7 +359,7 @@ string getCpuName()
   cpuId(cpuInfo, 0x80000000);
 
   // check if CPU name is supported
-  if ((unsigned int) cpuInfo[0] >= 0x80000004u)
+  if ((unsigned) cpuInfo[0] >= 0x80000004u)
   {
     cpuId(cpuInfo, 0x80000002);
     copy_n(cpuInfo, 4, back_inserter(vect));
