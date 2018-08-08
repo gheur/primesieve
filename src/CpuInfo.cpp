@@ -621,6 +621,7 @@ string getCpuName()
 
 /// A thread list file contains a human
 /// readable list of thread IDs.
+/// Example: 0-8,18-26
 /// https://www.kernel.org/doc/Documentation/cputopology.txt
 ///
 size_t parseThreadList(const string& filename)
@@ -629,9 +630,6 @@ size_t parseThreadList(const string& filename)
   auto threadList = getString(filename);
   auto tokens = split(threadList, ',');
 
-  // tokens can be:
-  // 1) threadId
-  // 2) threadId1-threadId2
   for (auto& str : tokens)
   {
     if (str.find('-') == string::npos)
@@ -651,6 +649,8 @@ size_t parseThreadList(const string& filename)
 /// A thread map file contains a hexadecimal
 /// or binary string where each set bit
 /// corresponds to a specific thread ID.
+/// Example: 00000000,00000000,00000000,07fc01ff
+/// https://www.kernel.org/doc/Documentation/cputopology.txt
 ///
 size_t parseThreadMap(const string& filename)
 {
